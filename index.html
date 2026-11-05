@@ -39,7 +39,7 @@ header.top .wrap{display:flex;align-items:center;gap:14px;padding-top:14px;paddi
 .pin .w{position:absolute;top:-8px;right:-10px;background:#fff;border:1.5px solid var(--red);color:var(--red);border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:800}
 .pin.dim{opacity:.35}
 .zb{position:absolute;transform:translate(-50%,-50%);z-index:2;cursor:pointer;color:#fff;font-weight:800;font-size:12px;padding:3px 8px;border-radius:8px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);white-space:nowrap;line-height:1.2}
-.zb.sel{outline:3px solid #111;transform:translate(-50%,-50%) scale(1.15)}
+.zb.zsel{outline:3px solid #111;transform:translate(-50%,-50%) scale(1.15);z-index:4}
 .zb .n{background:#fff;color:#d00;border-radius:8px;padding:0 4px;margin-left:3px;font-size:11px}
 .zg{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:18px;padding:6px 12px;margin:0 6px 8px 0;cursor:pointer;background:#fff;font-size:13px}
 .zg.on{border-color:var(--blue);background:#eef3ff}
@@ -670,7 +670,7 @@ function renderZone(){
   ZGRP = grpOf(ZSEL) || G[0];
   // map
   $('zmapimg').src=S.map; const mb=$('zmapbox'); mb.querySelectorAll('.zb').forEach(e=>e.remove());
-  areas.forEach(z=>{ const g=grpOf(z); const p=zp[z]; const n=T.filter(t=>(t.zones||[]).includes(z)).length; const ck=g&&zChecked(g.id); const el=document.createElement('div'); el.className='zb'+(z===ZSEL?' sel':''); el.style.left=p.x+'%'; el.style.top=p.y+'%'; el.style.background=g?g.color:'#666'; el.innerHTML=esc(z.replace(/^산업/,'산업 '))+(ck?' ✓':'')+(n?'<span class="n">'+n+'</span>':''); el.onclick=()=>{ ZSEL=z; renderZone(); }; mb.appendChild(el); });
+  areas.forEach(z=>{ const g=grpOf(z); const p=zp[z]; const n=T.filter(t=>(t.zones||[]).includes(z)).length; const ck=g&&zChecked(g.id); const el=document.createElement('div'); el.className='zb'+(z===ZSEL?' zsel':''); el.style.left=p.x+'%'; el.style.top=p.y+'%'; el.style.background=g?g.color:'#666'; el.innerHTML=esc(z.replace(/^산업/,'산업 '))+(ck?' ✓':'')+(n?'<span class="n">'+n+'</span>':''); el.onclick=()=>{ ZSEL=z; renderZone(); }; mb.appendChild(el); });
   // legend
   $('zLegend').innerHTML = G.map(g=>`<span class="zg ${ZGRP&&g.id===ZGRP.id?'on':''}" onclick="ZSEL=(S.groups||DEF_GROUPS).find(x=>x.id==='${g.id}').zones[0];renderZone()"><i style="background:${g.color}"></i><b>${esc(g.name)}</b> <span class="note">${zChecked(g.id)?'<span style="color:var(--green)">✓ 점검</span>':esc(g.zones.slice(0,2).join('·'))+(g.zones.length>2?' 외':'')}</span></span>`).join('') + '<div class="note" style="margin-top:4px">담당자: '+G.map(g=>esc(g.name)+' '+esc([g.arch,g.safe].filter(Boolean).join('·')||'미지정')).join(' / ')+'</div>';
   // group card
