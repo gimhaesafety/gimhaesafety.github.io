@@ -143,7 +143,7 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
         <button class="bigbtn g" onclick="exportExcel()">📊 엑셀로 내보내기</button>
         <div class="weather" id="weather">🌤️ 날씨 불러오는 중…</div>
         <div class="card" style="margin-top:12px" id="cctvCard">
-          <div class="sec-h" style="margin:0 0 10px"><h2 style="font-size:16px">📹 현장 CCTV <span class="note" style="font-weight:400">SiteEye · 30초마다 갱신</span></h2><button class="btn p" onclick="openCctv()">SiteEye 실시간 보기 ↗</button></div>
+          <div class="sec-h" style="margin:0 0 10px"><h2 style="font-size:16px">📹 현장 CCTV <span class="note" style="font-weight:400">SiteEye · 5초마다 갱신 · 화면 누르면 실시간</span></h2><button class="btn p" onclick="openCctv()">📺 실시간 보기</button></div>
           <div id="cctvGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
           <div class="note" id="cctvMsg" style="margin-top:8px"></div>
         </div>
@@ -203,11 +203,10 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
           <h3>안전 점검 항목</h3>
           <label class="l">작업계획서 / 사전작업허가서(P.T.W)</label><div class="ox" data-k="ptw"><button data-v="O">해당 (O)</button><button data-v="X">미해당 (X)</button></div>
           <label class="l">위험성평가 상등급 해당 여부</label><div class="ox" data-k="top"><button data-v="O">해당 (O)</button><button data-v="X">미해당 (X)</button></div>
-          <label class="l">유도자·신호수 배치</label><div class="ox" data-k="signal"><button data-v="O">배치 (O)</button><button data-v="X">미배치 (X)</button></div>
           <label class="l">유해위험물질(화약류 등) 반입</label><div class="ox" data-k="haz"><button data-v="O">반입 (O)</button><button data-v="X">미반입 (X)</button></div>
         </div>
         <div class="card fs" style="margin-top:16px">
-          <h3>책임자 · 감시단</h3>
+          <h3>책임자 · 전담자</h3>
           <div class="row2">
             <div><label class="l">작업지휘자</label><input class="in" id="f_leader" placeholder="성명"></div>
             <div><label class="l">관리감독자 (협력사)</label><input class="in" id="f_supSub" placeholder="성명"></div>
@@ -216,8 +215,8 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
             <div><label class="l">관리감독자 (HDC)</label><input class="in" id="f_supHdc" list="hdcList" placeholder="선택/입력"></div>
             <div><label class="l">안전관리자 (HDC)</label><input class="in" id="f_safe" list="hdcList" placeholder="선택/입력"></div>
           </div><datalist id="hdcList"></datalist>
-          <label class="l">감시단 또는 안전전담자 배치</label><div class="ox" data-k="watch"><button data-v="O">배치</button><button data-v="X">미배치</button></div>
-          <input class="in" id="f_watcher" placeholder="감시단 / 안전전담자 성명" style="margin-top:8px">
+          <label class="l">안전전담자 배치</label><div class="ox" data-k="watch"><button data-v="O">배치</button><button data-v="X">미배치</button></div>
+          <input class="in" id="f_watcher" placeholder="전담자 성명" style="margin-top:8px">
         </div>
         <div class="card fs" style="margin-top:16px">
           <h3>부가 안전정보</h3>
@@ -311,7 +310,7 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
   <button data-v="wk"><span class="ic">👷</span>근로자</button>
   <button data-v="admin"><span class="ic">⚙</span>관리</button>
 </nav>
-<div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="box" id="mbox"></div></div>
+<div class="modal" id="modal" onclick="if(event.target===this){ const f=document.getElementById('liveFrame'); if(f) f.src='about:blank'; document.getElementById('mbox').style.maxWidth=''; closeModal(); }"><div class="box" id="mbox"></div></div>
 <div class="toast" id="toast"></div>
 <input type="file" id="fAtt" accept=".xls,.xlsx,.csv" hidden><input type="file" id="fRos" accept=".xls,.xlsx,.csv" hidden>
 
@@ -398,9 +397,8 @@ function renderDash(){
   $('kpis').innerHTML = k(att||'-','총 출역인원','',"go('wk')")+k(vul.length,'취약근로자','pur',"go('wk')")+k(hrW,'고위험<br>작업인원')+k(act.length,'작업건수','',"go('status')")+k(hrT.length,'고위험','red')+k(top,'상등급','org');
   // checks
   const ck=[];
-  const noWatch=hrT.filter(t=>t.watch!=='O'); if(noWatch.length) ck.push(['r',`🚨 고위험 작업 감시단 미배치 ${noWatch.length}건`, noWatch]);
+  const noWatch=hrT.filter(t=>t.watch!=='O'); if(noWatch.length) ck.push(['r',`🚨 고위험 작업 전담자 미배치 ${noWatch.length}건`, noWatch]);
   const noPtw=hrT.filter(t=>t.ptw!=='O'); if(noPtw.length) ck.push(['r',`📝 고위험 작업 작업계획서/PTW 미확인 ${noPtw.length}건`, noPtw]);
-  const eqNoSig=act.filter(t=>eqSum(t)>0&&t.signal!=='O'); if(eqNoSig.length) ck.push(['',`🚧 장비 투입 작업 신호수 미확인 ${eqNoSig.length}건`, eqNoSig]);
   const vulNames=new Set(vul.map(v=>v.n));
   const vulHR=hrT.filter(t=>(t.crew||[]).some(n=>vulNames.has(n))); if(vulHR.length) ck.push(['r',`👴 고위험 작업에 취약근로자 투입 ${vulHR.length}건`, vulHR]);
   const vulEq=vul.filter(v=>/장비운전원|화약/.test(v.j||'')); if(vulEq.length) ck.push(['',`🦺 장비·화약 직종 취약근로자 ${vulEq.length}명: ${vulEq.map(v=>v.n).join(', ')}`, null]);
@@ -421,7 +419,7 @@ function taskCard(t){
     <h3><span>${esc(t.name)}</span><span class="st ${t.status}">${t.status}</span></h3>
     <div>${(t.hr||[]).filter(h=>h!=='해당 없음').map(h=>`<span class="tag hr">⚠ ${esc(h)}</span>`).join('')}${(t.eq||[]).map(e=>`<span class="tag eq">${esc(e.t)} ${e.n}대</span>`).join('')}${t.top==='O'?'<span class="tag top">상등급</span>':''}${vc.length?`<span class="tag v">취약 ${vc.join(', ')}</span>`:''}</div>
     <div class="meta"><span>📍 ${esc((t.zones||[]).join(', ')||'-')}${t.loc?' · '+esc(t.loc):''}</span><span>👥 ${t.workers||0}명</span><span>🕘 ${esc(t.start)}~${esc(t.end)}</span></div>
-    <div class="watch ${t.watch==='O'?'':'no'}">🦺 감시단/안전전담자: ${t.watch==='O'?esc(t.watcher||'배치'):'미배치'}</div>
+    <div class="watch ${t.watch==='O'?'':'no'}">🦺 전담자: ${t.watch==='O'?esc(t.watcher||'배치'):'미배치'}</div>
   </div>`;
 }
 function showCk(i){ const c=_ck[i]; if(!c[2]) return; openModal(`<h3 style="margin-top:0">${esc(c[1])}</h3>`+c[2].map(taskCard).join('')+'<button class="btn" onclick="closeModal()">닫기</button>'); }
@@ -435,9 +433,9 @@ function showTask(id){
    ${row('투입 장비',(t.eq||[]).map(e=>esc(e.t)+' '+e.n+'대').join(', '))}
    ${row('투입 근로자',(t.crew||[]).map(n=>esc(n)+(vm[n]?' '+vm[n].f.map(f=>`<span class="chip c-${f[0]}">${esc(f[1])}</span>`).join(''):'')).join(', '))}
    ${row('고위험 작업',(t.hr||[]).map(h=>`<span class="tag hr">${esc(h)}</span>`).join(''))}
-   ${row('PTW / 상등급',`${t.ptw||'-'} / ${t.top||'-'}`)}${row('신호수 / 유해물질',`${t.signal||'-'} / ${t.haz||'-'}`)}
+   ${row('PTW / 상등급',`${t.ptw||'-'} / ${t.top||'-'}`)}${row('유해물질 반입',`${t.haz||'-'}`)}
    ${row('작업지휘자',esc(t.leader))}${row('관리감독자',esc([t.supSub,t.supHdc].filter(Boolean).join(' / ')))}${row('안전관리자',esc(t.safe))}
-   ${row('감시단',t.watch==='O'?esc(t.watcher||'배치'):'<b style="color:var(--red)">미배치</b>')}${row('재해유형',esc(t.acc))}${row('작업제외구역',esc(t.excl))}
+   ${row('전담자',t.watch==='O'?esc(t.watcher||'배치'):'<b style="color:var(--red)">미배치</b>')}${row('재해유형',esc(t.acc))}${row('작업제외구역',esc(t.excl))}
    ${row('안전중점포인트',esc(t.detail).replace(/\n/g,'<br>'))}${row('비고',esc(t.note))}</div>
    <div style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap">
    ${['예정','진행중','완료','작업취소'].map(s=>`<button class="btn ${s===t.status?'p':''}" onclick="setStatus('${t.id}','${s}')">${s}</button>`).join('')}
@@ -458,14 +456,14 @@ function exportReport(){
 ■ 총 출역 ${attOf(D).length}명 / 작업 ${T.length}건 (고위험 ${hrT.length}건, 작업인원 ${hrT.reduce((a,t)=>a+(+t.workers||0),0)}명) / 장비 ${T.reduce((a,t)=>a+eqSum(t),0)}대
 ■ 취약근로자 ${vul.length}명${vul.length?': '+vul.map(v=>`${v.n}(${(v.j||'').replace(/\[.*?\]/,'')}, ${v.f.map(f=>f[1]).join('/')})`).join(', '):''}
 ■ 작업 목록
-${T.map((t,i)=>`${i+1}. [${t.co}] ${t.name} - ${(t.zones||[]).join(',')} / ${t.workers||0}명 / ${(t.eq||[]).map(e=>e.t+' '+e.n+'대').join(', ')||'장비없음'}${isHR(t)?' ⚠'+t.hr.filter(h=>h!=='해당 없음').join(','):''} / 감시단 ${t.watch==='O'?(t.watcher||'배치'):'미배치'}`).join('\n')}
+${T.map((t,i)=>`${i+1}. [${t.co}] ${t.name} - ${(t.zones||[]).join(',')} / ${t.workers||0}명 / ${(t.eq||[]).map(e=>e.t+' '+e.n+'대').join(', ')||'장비없음'}${isHR(t)?' ⚠'+t.hr.filter(h=>h!=='해당 없음').join(','):''} / 전담자 ${t.watch==='O'?(t.watcher||'배치'):'미배치'}`).join('\n')}
 ${$('weather').dataset.txt?'■ 날씨: '+$('weather').dataset.txt:''}`;
   navigator.clipboard.writeText(txt).then(()=>toast('보고문을 복사했습니다'),()=>openModal('<textarea style="width:100%;height:300px">'+esc(txt)+'</textarea>'));
 }
 function exportExcel(){
   if(typeof XLSX==='undefined') return alert('엑셀 라이브러리를 불러오지 못했습니다(인터넷 필요)');
   const T=tasksOf(D);
-  const rows=T.map(t=>({일자:t.date,협력업체:t.co,작업명:t.name,공종:t.trade,상태:t.status,구역:(t.zones||[]).join(','),상세위치:t.loc,인원:t.workers,시작:t.start,종료:t.end,장비:(t.eq||[]).map(e=>e.t+' '+e.n).join(', '),고위험:(t.hr||[]).join(','),PTW:t.ptw,상등급:t.top,신호수:t.signal,작업지휘자:t.leader,관리감독자_협력:t.supSub,관리감독자_HDC:t.supHdc,안전관리자:t.safe,감시단:t.watch==='O'?t.watcher||'배치':'미배치',투입근로자:(t.crew||[]).join(','),재해유형:t.acc,제외구역:t.excl,안전중점:t.detail,비고:t.note}));
+  const rows=T.map(t=>({일자:t.date,협력업체:t.co,작업명:t.name,공종:t.trade,상태:t.status,구역:(t.zones||[]).join(','),상세위치:t.loc,인원:t.workers,시작:t.start,종료:t.end,장비:(t.eq||[]).map(e=>e.t+' '+e.n).join(', '),고위험:(t.hr||[]).join(','),PTW:t.ptw,상등급:t.top,작업지휘자:t.leader,관리감독자_협력:t.supSub,관리감독자_HDC:t.supHdc,안전관리자:t.safe,전담자:t.watch==='O'?t.watcher||'배치':'미배치',투입근로자:(t.crew||[]).join(','),재해유형:t.acc,제외구역:t.excl,안전중점:t.detail,비고:t.note}));
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'작업현황');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(workers(D).map(w=>({업체:w.c,이름:w.n,공종:w.t,직종:w.j,생년월일:w.b,나이:w.age,국적:w.nat,출근:w.in,퇴근:w.out,취약구분:w.f.map(f=>f[1]).join(',')}))),'출역');
@@ -476,7 +474,8 @@ function exportExcel(){
 const CCTV = { base:'https://siteeye.hdc-dvp.com:9443', view:'https://siteeye.hdc-dvp.com:9443/cctv?psc=47ECXnTsrK2J9Mi1GlOhzw%3D%3D&psn=2YaELliw6AOmQ5sGQrmxHCc4q4zx9KNfZkD%2F33FSGKMa5Xv23IeK928FAY%2BUJP2%2F&pci=true',
   cams:[{name:'이동형 CCTV 1', nvr:'10.10.117.221', port:8090, ch:1},{name:'이동형 CCTV 2', nvr:'10.10.117.221', port:8090, ch:2}] };
 const camSrc = c => `${CCTV.base}/api/data/cctv/snapshot?nvrip=${c.nvr}&nvrport=${c.port}&channel=${c.ch}&time=${Math.floor(Date.now()/1000)}`;
-function openCctv(){ window.open(CCTV.view, 'siteeye_cctv', 'width=1400,height=900'); }
+function openCctv(){ openModal(`<div style="display:flex;align-items:center;margin-bottom:8px"><h3 style="margin:0;flex:1">📺 현장 CCTV 실시간 (SiteEye)</h3><button class="btn" onclick="window.open(CCTV.view,'siteeye_cctv','width=1400,height=900')">새 창 ↗</button>&nbsp;<button class="btn" onclick="closeLive()">닫기</button></div><iframe id="liveFrame" src="${CCTV.view}" style="width:100%;height:75vh;border:0;border-radius:10px;background:#222" allow="autoplay; fullscreen"></iframe><div class="note" style="margin-top:6px">왼쪽 카메라 목록에서 카메라를 더블클릭하면 영상이 재생되고 PTZ 조작도 가능합니다. 안 보이면 SiteEye 사내계정 로그인을 확인하세요.</div>`); $('mbox').style.maxWidth='96vw'; }
+function closeLive(){ const f=$('liveFrame'); if(f) f.src='about:blank'; $('mbox').style.maxWidth=''; closeModal(); }
 let _camFail=0;
 function renderCctv(){
   const g=$('cctvGrid'); if(!g) return; _camFail=0;
@@ -486,8 +485,8 @@ function renderCctv(){
 }
 function camErr(img){ _camFail++; img.style.display='none'; $('cctvMsg').innerHTML='🔒 CCTV 화면은 HDC 사내계정으로 SiteEye에 로그인된 브라우저에서만 보입니다. <a href="'+CCTV.base+'/dashboard" target="_blank">SiteEye 로그인 ↗</a> 후 새로고침하세요.'; }
 let _camTimer=null;
-function camModal(i){ const c=CCTV.cams[i]; openModal(`<h3 style="margin:0 0 10px">📹 ${c.name} <span class="note">5초마다 갱신</span></h3><img id="camBig" src="${camSrc(c)}" style="width:100%;border-radius:10px;background:#222"><div style="margin-top:10px;display:flex;gap:6px"><button class="btn p" onclick="openCctv()">SiteEye 실시간·PTZ 조작 ↗</button><span style="flex:1"></span><button class="btn" onclick="clearInterval(_camTimer);closeModal()">닫기</button></div>`); $('mbox').style.maxWidth='900px'; clearInterval(_camTimer); _camTimer=setInterval(()=>{ const b=$('camBig'); if(!b||!$('modal').classList.contains('on')){ clearInterval(_camTimer); $('mbox').style.maxWidth=''; return; } b.src=camSrc(c); },5000); }
-setInterval(()=>{ if(!_camFail) CCTV.cams.forEach((c,i)=>{ const im=$('cam'+i); if(im) im.src=camSrc(c); }); }, 30000);
+function camModal(i){ const c=CCTV.cams[i]; openModal(`<h3 style="margin:0 0 10px">📹 ${c.name} <span class="note">1.5초마다 갱신</span></h3><img id="camBig" src="${camSrc(c)}" style="width:100%;border-radius:10px;background:#222"><div style="margin-top:10px;display:flex;gap:6px"><button class="btn p" onclick="openCctv()">📺 실시간·PTZ 조작</button><span style="flex:1"></span><button class="btn" onclick="clearInterval(_camTimer);closeModal()">닫기</button></div>`); $('mbox').style.maxWidth='900px'; clearInterval(_camTimer); _camTimer=setInterval(()=>{ const b=$('camBig'); if(!b||!$('modal').classList.contains('on')){ clearInterval(_camTimer); $('mbox').style.maxWidth=''; return; } b.src=camSrc(c); },1500); }
+setInterval(()=>{ if(!_camFail && !document.hidden) CCTV.cams.forEach((c,i)=>{ const im=$('cam'+i); if(im) im.src=camSrc(c); const ts=im&&im.parentNode.lastElementChild; if(ts){ const t=new Date(); ts.textContent=t.toTimeString().slice(0,8); } }); }, 5000);
 
 /* ===================== WEATHER ===================== */
 async function loadWeather(){
@@ -560,8 +559,8 @@ function loadRecent(){
 /* ===================== STATUS / ZONE ===================== */
 function renderStatus(){
   const T=tasksOf(D); $('stCnt').textContent=T.length+'건';
-  $('stTbl').innerHTML='<tr><th>상태</th><th>업체</th><th>작업명</th><th>구역</th><th>인원</th><th>시간</th><th>장비</th><th>고위험</th><th>PTW</th><th>상등급</th><th>신호수</th><th>감시단</th><th></th></tr>'+
-   T.map(t=>`<tr><td><select onchange="setStatusQ('${t.id}',this.value)">${['예정','진행중','완료','작업취소'].map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></td><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${coColor(t.co)}"></i> ${esc(t.co)}</td><td><a href="#" onclick="showTask('${t.id}');return false"><b>${esc(t.name)}</b></a></td><td>${esc((t.zones||[]).join(', '))}</td><td>${t.workers}</td><td>${t.start}~${t.end}</td><td>${(t.eq||[]).map(e=>e.t+' '+e.n).join(', ')}</td><td>${isHR(t)?'<span class="tag hr">'+esc(t.hr.filter(h=>h!=='해당 없음').join(', '))+'</span>':'-'}</td><td>${t.ptw||'-'}</td><td>${t.top||'-'}</td><td>${t.signal||'-'}</td><td style="color:${t.watch==='O'?'var(--green)':'var(--red)'}">${t.watch==='O'?esc(t.watcher||'배치'):'미배치'}</td><td><button class="btn" onclick="editTask('${t.id}')">수정</button></td></tr>`).join('') + (T.length?'':'<tr><td colspan="13" style="text-align:center;color:#888;padding:30px">등록된 작업이 없습니다</td></tr>');
+  $('stTbl').innerHTML='<tr><th>상태</th><th>업체</th><th>작업명</th><th>구역</th><th>인원</th><th>시간</th><th>장비</th><th>고위험</th><th>PTW</th><th>상등급</th><th>전담자</th><th></th></tr>'+
+   T.map(t=>`<tr><td><select onchange="setStatusQ('${t.id}',this.value)">${['예정','진행중','완료','작업취소'].map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></td><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${coColor(t.co)}"></i> ${esc(t.co)}</td><td><a href="#" onclick="showTask('${t.id}');return false"><b>${esc(t.name)}</b></a></td><td>${esc((t.zones||[]).join(', '))}</td><td>${t.workers}</td><td>${t.start}~${t.end}</td><td>${(t.eq||[]).map(e=>e.t+' '+e.n).join(', ')}</td><td>${isHR(t)?'<span class="tag hr">'+esc(t.hr.filter(h=>h!=='해당 없음').join(', '))+'</span>':'-'}</td><td>${t.ptw||'-'}</td><td>${t.top||'-'}</td><td style="color:${t.watch==='O'?'var(--green)':'var(--red)'}">${t.watch==='O'?esc(t.watcher||'배치'):'미배치'}</td><td><button class="btn" onclick="editTask('${t.id}')">수정</button></td></tr>`).join('') + (T.length?'':'<tr><td colspan="13" style="text-align:center;color:#888;padding:30px">등록된 작업이 없습니다</td></tr>');
 }
 function setStatusQ(id,s){ S.tasks.find(x=>x.id===id).status=s; save(); renderDash(); }
 function renderZone(){
