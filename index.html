@@ -687,7 +687,9 @@ document.querySelectorAll('nav.bottom button').forEach(b=>b.onclick=()=>{ if(b.d
 function shiftDate(n){ if(n===0) D=todayStr(); else { const d=new Date(D); d.setDate(d.getDate()+n); D=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } $('date').value=D; renderAll(); autoSync(); }
 $('date').onchange=()=>{ D=$('date').value; renderAll(); autoSync(); };
 function renderAll(){ $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
-$('date').value=D; renderAll(); loadWeather(); autoSync();
+async function loadAttJson(){ try{ const r=await fetch('att.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); let n=0; for(const [d,v] of Object.entries(j.days||{})){ if((S.attSrc||{})[d] && !/자동/.test(S.attSrc[d]) && !/Gateware 일일 출역 \(11\/5/.test(S.attSrc[d])) continue; S.att[d]=v.rows; (S.attSrc=S.attSrc||{})[d]='Gateware 자동 ('+v.at+' 기준, 이름 일부 가림)'; n++; } if(n){ save(); renderAll(); } }catch(e){} }
+$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson();
+setInterval(loadAttJson, 10*60*1000);
 setInterval(()=>{ _autoDone[D]=0; autoSync(); }, 5*60*1000);
 </script>
 </body>
