@@ -399,10 +399,10 @@ function renderDash(){
   // KPIs
   const w=workers(D), vul=vulOf(D);
   const hrT=act.filter(isHR), hrW=hrT.reduce((a,t)=>a+(+t.workers||0),0);
-  const top=act.filter(t=>t.top==='O').length;
+  const tcs=(S.topchk||{})[D]; const top= tcs&&tcs.sum ? (tcs.sum.total - tcs.sum.nowork) : act.filter(t=>t.top==='O').length;
   const att=attOf(D).length;
   const k=(v,l,cls,go)=>`<div class="kpi ${cls||''}" onclick="${go||''}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
-  $('kpis').innerHTML = k(att||'-','총 출역인원','',"go('wk')")+k(vul.length,'취약근로자','pur',"go('wk')")+k(hrW,'고위험<br>작업인원')+k(act.length,'작업건수','',"go('status')")+k(hrT.length,'고위험','red')+k(top,'상등급','org');
+  $('kpis').innerHTML = k(att||'-','총 출역인원','',"go('wk')")+k(vul.length,'취약근로자','pur',"go('wk')")+k(hrW,'고위험<br>작업인원')+k(act.length,'작업건수','',"go('status')")+k(hrT.length,'고위험','red')+k(top,'상등급','org',"showTop()");
   // checks
   const ck=[];
   const noWatch=hrT.filter(t=>t.watch!=='O'); if(noWatch.length) ck.push(['r',`🚨 고위험 작업 전담자 미배치 ${noWatch.length}건`, noWatch]);
@@ -426,11 +426,12 @@ function taskCard(t){
   const vulNames=new Set(vulOf(D).map(v=>v.n)); const vc=(t.crew||[]).filter(n=>vulNames.has(n));
   return `<div class="task ${isHR(t)?'hr':''}" onclick="showTask('${t.id}')">
     <h3><span>${esc(t.name)}</span><span class="st ${t.status}">${t.status}</span></h3>
-    <div>${(t.hr||[]).filter(h=>h!=='해당 없음').map(h=>`<span class="tag hr">⚠ ${esc(h)}${t.hrSrc?' · i-safety':''}</span>`).join('')}${t.src==='isafety'&&t.status==='작업취소'?'<span class="tag" style="background:#eef0f3;color:#555">i-safety 고위험 · 금일 작업없음</span>':''}${(t.eq||[]).map(e=>`<span class="tag eq">${esc(e.t)} ${e.n}대</span>`).join('')}${t.top==='O'?'<span class="tag top">상등급</span>':''}${vc.length?`<span class="tag v">취약 ${vc.join(', ')}</span>`:''}</div>
+    <div>${(t.hr||[]).filter(h=>h!=='해당 없음').map(h=>`<span class="tag hr">⚠ ${esc(h)}${t.hrSrc?' · i-safety':''}</span>`).join('')}${t.src==='isafety'&&t.status==='작업취소'?'<span class="tag" style="background:#eef0f3;color:#555">i-safety 고위험 · 금일 작업없음</span>':''}${(t.eq||[]).map(e=>`<span class="tag eq">${esc(e.t)} ${e.n}대</span>`).join('')}${t.top==='O'?`<span class="tag top" title="${esc((t.topInfo||[]).join(' / '))}">상등급${t.topInfo?' · i-safety':''}</span>`:''}${vc.length?`<span class="tag v">취약 ${vc.join(', ')}</span>`:''}</div>
     <div class="meta"><span>📍 ${esc((t.zones||[]).join(', ')||'-')}${t.loc?' · '+esc(t.loc):''}</span><span>👥 ${t.workers||0}명</span><span>🕘 ${esc(t.start)}~${esc(t.end)}</span></div>
     <div class="watch ${t.watch==='O'?'':'no'}">🦺 전담자: ${t.watch==='O'?esc(t.watcher||'배치'):'미배치'}</div>
   </div>`;
 }
+function showTop(){ const tc=(S.topchk||{})[D]; if(!tc){ return toast('i-safety 상등급 점검일지에 이 날짜 기록이 없습니다'); } const s=tc.sum||{}; openModal(`<h3 style="margin-top:0">i-safety 상등급 점검일지 · ${D}</h3><div class="note" style="margin-bottom:10px">전체 ${s.total??'-'} · 양호 ${s.good??'-'} · 불량 ${s.bad??'-'} · 작업없음 ${s.nowork??'-'} · 미점검 ${s.unchecked??'-'}</div>`+(tc.items? tc.items.map(it=>`<div style="border-top:1px solid var(--line);padding:8px 0"><b>${esc(it.co)}</b> · ${esc(it.trade)} · ${esc(it.loc)} <span class="tag ${/작업없음/.test(it.result)?'':'top'}">${esc(it.result||'-')}</span><div style="font-size:13px;margin-top:4px">작업: ${esc(it.work)}<br>위험요인: ${esc(it.risk)}</div></div>`).join('') : '<div class="note">상세 항목은 당일 아침 자동 업데이트 때만 수집됩니다.</div>')+'<p><button class="btn" onclick="closeModal()">닫기</button></p>'); }
 function showCk(i){ const c=_ck[i]; if(!c[2]) return; openModal(`<h3 style="margin-top:0">${esc(c[1])}</h3>`+c[2].map(taskCard).join('')+'<button class="btn" onclick="closeModal()">닫기</button>'); }
 function showTask(id){
   const t=S.tasks.find(x=>x.id===id); if(!t) return;
@@ -717,22 +718,24 @@ document.querySelectorAll('nav.bottom button').forEach(b=>b.onclick=()=>{ if(b.d
 function shiftDate(n){ if(n===0) D=todayStr(); else { const d=new Date(D); d.setDate(d.getDate()+n); D=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } $('date').value=D; renderAll(); autoSync(); }
 $('date').onchange=()=>{ D=$('date').value; renderAll(); autoSync(); };
 function renderAll(){ applyHighRisk(D); $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
-async function loadHR(){ try{ const r=await fetch('hirisk.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.hirisk=j.days||{}; S.hiriskAt=j.updated||''; applyHighRisk(D); renderAll(); }catch(e){} }
+async function loadHR(){ try{ const r=await fetch('hirisk.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.hirisk=j.days||{}; S.topchk=j.topchk||{}; S.hiriskAt=j.updated||''; applyHighRisk(D); renderAll(); }catch(e){} }
 function hrZones(loc){ const out=[]; const m=String(loc).match(/보강토\s*([\d,\s]+)호/); if(m) m[1].split(/[,\s]+/).filter(Boolean).forEach(n=>out.push('보강토'+n+'호')); const locN=zl(loc); S.zones.forEach(z=>{ if(locN.split(/[,，]/).map(s=>s.trim()).some(s=>s===z||s.startsWith(z+' '))) out.push(z); }); return [...new Set(out)]; }
 function applyHighRisk(d){
   if(!S.hirisk) return;
   S.tasks = S.tasks.filter(t=>!(t.date===d && t.src==='isafety'));
   const T = S.tasks.filter(t=>t.date===d);
-  T.forEach(t=>{ if(!t._hrOrig) t._hrOrig=t.hr; t.hr=['해당 없음']; t.hrSrc=''; });
+  T.forEach(t=>{ if(!t._hrOrig) t._hrOrig=t.hr; t.hr=['해당 없음']; t.hrSrc=''; t.top='X'; t.topInfo=null; });
+  const tc=(S.topchk||{})[d];
+  if(tc && tc.items) tc.items.forEach(it=>{ if(/작업없음/.test(it.result||'')) return; const kw=['발파','장약','천공','보강토','블럭','아스콘','포장','굴착','되메우기','터파기','상차','성토','다짐','운반','덤프','롤러']; const src=(it.trade+' '+it.work+' '+it.risk+' '+it.loc); const ks=kw.filter(k=>src.includes(k)); const hit=T.filter(t=>norm(t.co)===norm(it.co) && (ks.some(k=>(t.name+' '+t.loc).includes(k)) || (t.zones||[]).some(z=>hrZones(it.loc).includes(z)))); hit.forEach(t=>{ t.top='O'; (t.topInfo=t.topInfo||[]).push(it.work+' : '+it.risk); }); it._matched=hit.length; });
   const list = S.hirisk[d];
   if(!list) return;
   list.forEach((h,i)=>{
     const z=hrZones(h.loc); const noWork=/작업\s*없|작업없음/.test(h.content||'');
     const hit=T.filter(t=>norm(t.co)===norm(h.co) && (t.zones||[]).some(x=>z.includes(x)));
     const hrT=[h.type||'고위험 작업'];
-    if(hit.length){ hit.forEach(t=>{ t.hr=noWork?['해당 없음']:hrT; t.hrSrc='i-safety'; if(h.grade==='상') t.top='O'; if(noWork){ t.status='작업취소'; t.note=(t.note||'')+' / i-safety: '+h.content; } if(h.watcher&&h.watcher!=='없음'){ t.watch='O'; t.watcher=h.watcher; } t.detail=t.detail||h.measures; t.supHdc=t.supHdc||h.supervisor; t.safe=t.safe||h.safety; }); }
+    if(hit.length){ hit.forEach(t=>{ t.hr=noWork?['해당 없음']:hrT; t.hrSrc='i-safety'; if(noWork){ t.status='작업취소'; t.note=(t.note||'')+' / i-safety: '+h.content; } if(h.watcher&&h.watcher!=='없음'){ t.watch='O'; t.watcher=h.watcher; } t.detail=t.detail||h.measures; t.supHdc=t.supHdc||h.supervisor; t.safe=t.safe||h.safety; }); }
     else { const co=(S.companies.find(c=>norm(c.name)===norm(h.co))||{}).name||h.co;
-      S.tasks.push({id:'isafety-'+d+'-'+i, src:'isafety', date:d, co, name:(h.type||'고위험 작업')+' (i-safety)', trade:'보강토', status:noWork?'작업취소':'진행중', zones:z, loc:h.loc, workers:0, start:'07:00', end:'17:00', crew:[], eq:[], detail:h.measures||'', hr:noWork?['해당 없음']:hrT, hrSrc:'i-safety', ptw:'', top:h.grade==='상'?'O':'X', haz:'X', leader:'', supSub:'', supHdc:h.supervisor||'', safe:h.safety||'', watch:(h.watcher&&h.watcher!=='없음')?'O':'X', watcher:(h.watcher&&h.watcher!=='없음')?h.watcher:'', acc:'', excl:'', early:'정규', note:'i-safety 일일고위험작업 등록'+(h.content?' / '+h.content:''), pins:[] }); }
+      S.tasks.push({id:'isafety-'+d+'-'+i, src:'isafety', date:d, co, name:(h.type||'고위험 작업')+' (i-safety)', trade:'보강토', status:noWork?'작업취소':'진행중', zones:z, loc:h.loc, workers:0, start:'07:00', end:'17:00', crew:[], eq:[], detail:h.measures||'', hr:noWork?['해당 없음']:hrT, hrSrc:'i-safety', ptw:'', top:'X', haz:'X', leader:'', supSub:'', supHdc:h.supervisor||'', safe:h.safety||'', watch:(h.watcher&&h.watcher!=='없음')?'O':'X', watcher:(h.watcher&&h.watcher!=='없음')?h.watcher:'', acc:'', excl:'', early:'정규', note:'i-safety 일일고위험작업 등록'+(h.content?' / '+h.content:''), pins:[] }); }
   });
 }
 async function loadMarks(){ try{ const r=await fetch('planmarks.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.marks=j.days||{}; renderDash(); }catch(e){} }
