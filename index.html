@@ -410,6 +410,7 @@ function renderDash(){
   const vulNames=new Set(vul.map(v=>v.n));
   const vulHR=hrT.filter(t=>(t.crew||[]).some(n=>vulNames.has(n))); if(vulHR.length) ck.push(['r',`👴 고위험 작업에 취약근로자 투입 ${vulHR.length}건`, vulHR]);
   const vulEq=vul.filter(v=>/장비운전원|화약/.test(v.j||'')); if(vulEq.length) ck.push(['',`🦺 장비·화약 직종 취약근로자 ${vulEq.length}명: ${vulEq.map(v=>v.n).join(', ')}`, null]);
+  if(S.hirisk && !S.hirisk[D]) ck.push(['',`🔎 i-safety 일일고위험작업에 ${D} 등록 내역이 없습니다 (고위험 0건으로 표시)`, null]);
   const noPin=act.filter(t=>!(t.pins||[]).length && !(t.zones||[]).some(z=>(S.zonePos||{})[z])); if(noPin.length) ck.push(['',`📍 위치 미지정 작업 ${noPin.length}건`, noPin]);
   window._ck=ck;
   $('chk').innerHTML = ck.length? '<h4>⚠️ 확인이 필요한 항목</h4>'+ck.map((c,i)=>`<button class="${c[0]}" onclick="showCk(${i})"><span>${esc(c[1])}</span><span>›</span></button>`).join('') : '<h4>✅ 확인이 필요한 항목 없음</h4>';
@@ -425,7 +426,7 @@ function taskCard(t){
   const vulNames=new Set(vulOf(D).map(v=>v.n)); const vc=(t.crew||[]).filter(n=>vulNames.has(n));
   return `<div class="task ${isHR(t)?'hr':''}" onclick="showTask('${t.id}')">
     <h3><span>${esc(t.name)}</span><span class="st ${t.status}">${t.status}</span></h3>
-    <div>${(t.hr||[]).filter(h=>h!=='해당 없음').map(h=>`<span class="tag hr">⚠ ${esc(h)}</span>`).join('')}${(t.eq||[]).map(e=>`<span class="tag eq">${esc(e.t)} ${e.n}대</span>`).join('')}${t.top==='O'?'<span class="tag top">상등급</span>':''}${vc.length?`<span class="tag v">취약 ${vc.join(', ')}</span>`:''}</div>
+    <div>${(t.hr||[]).filter(h=>h!=='해당 없음').map(h=>`<span class="tag hr">⚠ ${esc(h)}${t.hrSrc?' · i-safety':''}</span>`).join('')}${t.src==='isafety'&&t.status==='작업취소'?'<span class="tag" style="background:#eef0f3;color:#555">i-safety 고위험 · 금일 작업없음</span>':''}${(t.eq||[]).map(e=>`<span class="tag eq">${esc(e.t)} ${e.n}대</span>`).join('')}${t.top==='O'?'<span class="tag top">상등급</span>':''}${vc.length?`<span class="tag v">취약 ${vc.join(', ')}</span>`:''}</div>
     <div class="meta"><span>📍 ${esc((t.zones||[]).join(', ')||'-')}${t.loc?' · '+esc(t.loc):''}</span><span>👥 ${t.workers||0}명</span><span>🕘 ${esc(t.start)}~${esc(t.end)}</span></div>
     <div class="watch ${t.watch==='O'?'':'no'}">🦺 전담자: ${t.watch==='O'?esc(t.watcher||'배치'):'미배치'}</div>
   </div>`;
@@ -693,7 +694,7 @@ async function syncSheet(tabName, silent){
     nt.forEach(t=>{ t.src='sheet'; const prev=old.find(o=>o.name===t.name&&o.loc===t.loc); if(prev){ ['status','watch','watcher','signal','ptw','safe','crew','workers','start','end','early','acc','excl'].forEach(k=>{ if(prev[k]!==undefined&&prev[k]!==''&&!(Array.isArray(prev[k])&&!prev[k].length)) t[k]=prev[k]; }); if(prev.pins&&prev.pins.length) t.pins=prev.pins; } const ex=S.companies.find(c=>norm(c.name)===norm(t.co)); if(ex) t.co=ex.name; if(!ex) S.companies.push({name:t.co,color:['#2c5be0','#e0353a','#1f9d55','#e9891a','#7a4ed6','#0aa5b8','#c2185b'][S.companies.length%7]}); });
     const sig=JSON.stringify(list); if(silent && S.sheetSig && S.sheetSig[D]===sig) return 'same';
     (S.sheetSig=S.sheetSig||{})[D]=sig;
-    S.tasks=S.tasks.filter(t=>t.date!==D).concat(nt); save(); renderAll(); if(!silent) go('dash'); toast(`구글시트 '${name}' ${nt.length}건 ${silent?'자동 ':''}반영`); return 'ok';
+    S.tasks=S.tasks.filter(t=>t.date!==D).concat(nt); applyHighRisk(D); save(); renderAll(); if(!silent) go('dash'); toast(`구글시트 '${name}' ${nt.length}건 ${silent?'자동 ':''}반영`); return 'ok';
   }catch(e){ if(silent) return 'err'; alert('구글시트 불러오기 실패: '+e.message); }
 }
 const _autoDone={};
@@ -715,10 +716,29 @@ function go(v){ document.querySelectorAll('.view').forEach(x=>x.classList.toggle
 document.querySelectorAll('nav.bottom button').forEach(b=>b.onclick=()=>{ if(b.dataset.v==='reg') editId=null; go(b.dataset.v); });
 function shiftDate(n){ if(n===0) D=todayStr(); else { const d=new Date(D); d.setDate(d.getDate()+n); D=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } $('date').value=D; renderAll(); autoSync(); }
 $('date').onchange=()=>{ D=$('date').value; renderAll(); autoSync(); };
-function renderAll(){ $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
+function renderAll(){ applyHighRisk(D); $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
+async function loadHR(){ try{ const r=await fetch('hirisk.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.hirisk=j.days||{}; S.hiriskAt=j.updated||''; applyHighRisk(D); renderAll(); }catch(e){} }
+function hrZones(loc){ const out=[]; const m=String(loc).match(/보강토\s*([\d,\s]+)호/); if(m) m[1].split(/[,\s]+/).filter(Boolean).forEach(n=>out.push('보강토'+n+'호')); const locN=zl(loc); S.zones.forEach(z=>{ if(locN.split(/[,，]/).map(s=>s.trim()).some(s=>s===z||s.startsWith(z+' '))) out.push(z); }); return [...new Set(out)]; }
+function applyHighRisk(d){
+  if(!S.hirisk) return;
+  S.tasks = S.tasks.filter(t=>!(t.date===d && t.src==='isafety'));
+  const T = S.tasks.filter(t=>t.date===d);
+  T.forEach(t=>{ if(!t._hrOrig) t._hrOrig=t.hr; t.hr=['해당 없음']; t.hrSrc=''; });
+  const list = S.hirisk[d];
+  if(!list) return;
+  list.forEach((h,i)=>{
+    const z=hrZones(h.loc); const noWork=/작업\s*없|작업없음/.test(h.content||'');
+    const hit=T.filter(t=>norm(t.co)===norm(h.co) && (t.zones||[]).some(x=>z.includes(x)));
+    const hrT=[h.type||'고위험 작업'];
+    if(hit.length){ hit.forEach(t=>{ t.hr=noWork?['해당 없음']:hrT; t.hrSrc='i-safety'; if(h.grade==='상') t.top='O'; if(noWork){ t.status='작업취소'; t.note=(t.note||'')+' / i-safety: '+h.content; } if(h.watcher&&h.watcher!=='없음'){ t.watch='O'; t.watcher=h.watcher; } t.detail=t.detail||h.measures; t.supHdc=t.supHdc||h.supervisor; t.safe=t.safe||h.safety; }); }
+    else { const co=(S.companies.find(c=>norm(c.name)===norm(h.co))||{}).name||h.co;
+      S.tasks.push({id:'isafety-'+d+'-'+i, src:'isafety', date:d, co, name:(h.type||'고위험 작업')+' (i-safety)', trade:'보강토', status:noWork?'작업취소':'진행중', zones:z, loc:h.loc, workers:0, start:'07:00', end:'17:00', crew:[], eq:[], detail:h.measures||'', hr:noWork?['해당 없음']:hrT, hrSrc:'i-safety', ptw:'', top:h.grade==='상'?'O':'X', haz:'X', leader:'', supSub:'', supHdc:h.supervisor||'', safe:h.safety||'', watch:(h.watcher&&h.watcher!=='없음')?'O':'X', watcher:(h.watcher&&h.watcher!=='없음')?h.watcher:'', acc:'', excl:'', early:'정규', note:'i-safety 일일고위험작업 등록'+(h.content?' / '+h.content:''), pins:[] }); }
+  });
+}
 async function loadMarks(){ try{ const r=await fetch('planmarks.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.marks=j.days||{}; renderDash(); }catch(e){} }
 async function loadAttJson(){ try{ const r=await fetch('att.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); let n=0; for(const [d,v] of Object.entries(j.days||{})){ if((S.attSrc||{})[d] && !/자동/.test(S.attSrc[d]) && !/Gateware 일일 출역 \(11\/5/.test(S.attSrc[d])) continue; S.att[d]=v.rows; (S.attSrc=S.attSrc||{})[d]='Gateware 자동 ('+v.at+' 기준, 이름 일부 가림)'; n++; } if(n){ save(); renderAll(); } }catch(e){} }
-$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); loadMarks(); renderCctv();
+$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); loadMarks(); loadHR(); renderCctv();
+setInterval(loadHR, 10*60*1000);
 setInterval(loadMarks, 10*60*1000);
 setInterval(loadAttJson, 10*60*1000);
 setInterval(()=>{ _autoDone[D]=0; autoSync(); }, 5*60*1000);
