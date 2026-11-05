@@ -142,6 +142,11 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
         <button class="bigbtn" onclick="exportReport()">📤 일일 고위험 작업 현황 보고문 복사</button>
         <button class="bigbtn g" onclick="exportExcel()">📊 엑셀로 내보내기</button>
         <div class="weather" id="weather">🌤️ 날씨 불러오는 중…</div>
+        <div class="card" style="margin-top:12px" id="cctvCard">
+          <div class="sec-h" style="margin:0 0 10px"><h2 style="font-size:16px">📹 현장 CCTV <span class="note" style="font-weight:400">SiteEye · 30초마다 갱신</span></h2><button class="btn p" onclick="openCctv()">SiteEye 실시간 보기 ↗</button></div>
+          <div id="cctvGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+          <div class="note" id="cctvMsg" style="margin-top:8px"></div>
+        </div>
       </div>
       <div>
         <div class="sec-h"><h2>주요 작업 목록</h2><span><span class="pill" id="syncInfo" style="margin-right:6px">구글시트 확인 중…</span><button class="btn" onclick="_autoDone[D]=0;S.sheetSig&&delete S.sheetSig[D];syncSheet(null,true).then(r=>{ $('syncInfo').textContent= r==='notab'?'구글시트에 이 날짜 탭이 없습니다':'구글시트 연동됨'; })">↻ 시트 새로고침</button> <span class="pill" id="taskCnt"></span></span></div>
@@ -467,6 +472,23 @@ function exportExcel(){
   XLSX.writeFile(wb,`일일작업현황_${D}.xlsx`);
 }
 
+/* ===================== CCTV (SiteEye) ===================== */
+const CCTV = { base:'https://siteeye.hdc-dvp.com:9443', view:'https://siteeye.hdc-dvp.com:9443/cctv?psc=47ECXnTsrK2J9Mi1GlOhzw%3D%3D&psn=2YaELliw6AOmQ5sGQrmxHCc4q4zx9KNfZkD%2F33FSGKMa5Xv23IeK928FAY%2BUJP2%2F&pci=true',
+  cams:[{name:'이동형 CCTV 1', nvr:'10.10.117.221', port:8090, ch:1},{name:'이동형 CCTV 2', nvr:'10.10.117.221', port:8090, ch:2}] };
+const camSrc = c => `${CCTV.base}/api/data/cctv/snapshot?nvrip=${c.nvr}&nvrport=${c.port}&channel=${c.ch}&time=${Math.floor(Date.now()/1000)}`;
+function openCctv(){ window.open(CCTV.view, 'siteeye_cctv', 'width=1400,height=900'); }
+let _camFail=0;
+function renderCctv(){
+  const g=$('cctvGrid'); if(!g) return; _camFail=0;
+  const t=new Date(); const ts=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+  g.innerHTML = CCTV.cams.map((c,i)=>`<div style="position:relative;cursor:pointer" onclick="camModal(${i})"><img id="cam${i}" src="${camSrc(c)}" style="width:100%;aspect-ratio:704/480;object-fit:cover;border-radius:10px;background:#222;display:block" onerror="camErr(this)"><div style="position:absolute;left:8px;top:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:6px">${c.name}</div><div style="position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:1px 6px;border-radius:6px">${ts}</div></div>`).join('');
+  $('cctvMsg').textContent='';
+}
+function camErr(img){ _camFail++; img.style.display='none'; $('cctvMsg').innerHTML='🔒 CCTV 화면은 HDC 사내계정으로 SiteEye에 로그인된 브라우저에서만 보입니다. <a href="'+CCTV.base+'/dashboard" target="_blank">SiteEye 로그인 ↗</a> 후 새로고침하세요.'; }
+let _camTimer=null;
+function camModal(i){ const c=CCTV.cams[i]; openModal(`<h3 style="margin:0 0 10px">📹 ${c.name} <span class="note">5초마다 갱신</span></h3><img id="camBig" src="${camSrc(c)}" style="width:100%;border-radius:10px;background:#222"><div style="margin-top:10px;display:flex;gap:6px"><button class="btn p" onclick="openCctv()">SiteEye 실시간·PTZ 조작 ↗</button><span style="flex:1"></span><button class="btn" onclick="clearInterval(_camTimer);closeModal()">닫기</button></div>`); $('mbox').style.maxWidth='900px'; clearInterval(_camTimer); _camTimer=setInterval(()=>{ const b=$('camBig'); if(!b||!$('modal').classList.contains('on')){ clearInterval(_camTimer); $('mbox').style.maxWidth=''; return; } b.src=camSrc(c); },5000); }
+setInterval(()=>{ if(!_camFail) CCTV.cams.forEach((c,i)=>{ const im=$('cam'+i); if(im) im.src=camSrc(c); }); }, 30000);
+
 /* ===================== WEATHER ===================== */
 async function loadWeather(){
   try{
@@ -688,7 +710,7 @@ function shiftDate(n){ if(n===0) D=todayStr(); else { const d=new Date(D); d.set
 $('date').onchange=()=>{ D=$('date').value; renderAll(); autoSync(); };
 function renderAll(){ $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
 async function loadAttJson(){ try{ const r=await fetch('att.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); let n=0; for(const [d,v] of Object.entries(j.days||{})){ if((S.attSrc||{})[d] && !/자동/.test(S.attSrc[d]) && !/Gateware 일일 출역 \(11\/5/.test(S.attSrc[d])) continue; S.att[d]=v.rows; (S.attSrc=S.attSrc||{})[d]='Gateware 자동 ('+v.at+' 기준, 이름 일부 가림)'; n++; } if(n){ save(); renderAll(); } }catch(e){} }
-$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson();
+$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); renderCctv();
 setInterval(loadAttJson, 10*60*1000);
 setInterval(()=>{ _autoDone[D]=0; autoSync(); }, 5*60*1000);
 </script>
