@@ -143,7 +143,7 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
         <button class="bigbtn g" onclick="exportExcel()">📊 엑셀로 내보내기</button>
         <div class="weather" id="weather">🌤️ 날씨 불러오는 중…</div>
         <div class="card" style="margin-top:12px" id="cctvCard">
-          <div class="sec-h" style="margin:0 0 10px"><h2 style="font-size:16px">📹 현장 CCTV <span class="note" style="font-weight:400">SiteEye · 5초마다 갱신 · 화면 누르면 실시간</span></h2><button class="btn p" onclick="openCctv()">📺 실시간 보기</button></div>
+          <div class="sec-h" style="margin:0 0 10px"><h2 style="font-size:16px">📹 현장 CCTV <span class="note" style="font-weight:400">SiteEye · 5초마다 갱신 · 화면 누르면 1초 갱신</span></h2><button class="btn p" onclick="openCctv()">📺 SiteEye 실시간 ↗</button></div>
           <div id="cctvGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
           <div class="note" id="cctvMsg" style="margin-top:8px"></div>
         </div>
@@ -474,8 +474,8 @@ function exportExcel(){
 const CCTV = { base:'https://siteeye.hdc-dvp.com:9443', view:'https://siteeye.hdc-dvp.com:9443/cctv?psc=47ECXnTsrK2J9Mi1GlOhzw%3D%3D&psn=2YaELliw6AOmQ5sGQrmxHCc4q4zx9KNfZkD%2F33FSGKMa5Xv23IeK928FAY%2BUJP2%2F&pci=true',
   cams:[{name:'이동형 CCTV 1', nvr:'10.10.117.221', port:8090, ch:1},{name:'이동형 CCTV 2', nvr:'10.10.117.221', port:8090, ch:2}] };
 const camSrc = c => `${CCTV.base}/api/data/cctv/snapshot?nvrip=${c.nvr}&nvrport=${c.port}&channel=${c.ch}&time=${Math.floor(Date.now()/1000)}`;
-function openCctv(){ openModal(`<div style="display:flex;align-items:center;margin-bottom:8px"><h3 style="margin:0;flex:1">📺 현장 CCTV 실시간 (SiteEye)</h3><button class="btn" onclick="window.open(CCTV.view,'siteeye_cctv','width=1400,height=900')">새 창 ↗</button>&nbsp;<button class="btn" onclick="closeLive()">닫기</button></div><iframe id="liveFrame" src="${CCTV.view}" style="width:100%;height:75vh;border:0;border-radius:10px;background:#222" allow="autoplay; fullscreen"></iframe><div class="note" style="margin-top:6px">왼쪽 카메라 목록에서 카메라를 더블클릭하면 영상이 재생되고 PTZ 조작도 가능합니다. 안 보이면 SiteEye 사내계정 로그인을 확인하세요.</div>`); $('mbox').style.maxWidth='96vw'; }
-function closeLive(){ const f=$('liveFrame'); if(f) f.src='about:blank'; $('mbox').style.maxWidth=''; closeModal(); }
+function openCctv(){ window.open(CCTV.view,'siteeye_cctv','width=1400,height=900'); }
+function closeLive(){ closeModal(); }
 let _camFail=0;
 function renderCctv(){
   const g=$('cctvGrid'); if(!g) return; _camFail=0;
@@ -485,7 +485,7 @@ function renderCctv(){
 }
 function camErr(img){ _camFail++; img.style.display='none'; $('cctvMsg').innerHTML='🔒 CCTV 화면은 HDC 사내계정으로 SiteEye에 로그인된 브라우저에서만 보입니다. <a href="'+CCTV.base+'/dashboard" target="_blank">SiteEye 로그인 ↗</a> 후 새로고침하세요.'; }
 let _camTimer=null;
-function camModal(i){ const c=CCTV.cams[i]; openModal(`<h3 style="margin:0 0 10px">📹 ${c.name} <span class="note">1.5초마다 갱신</span></h3><img id="camBig" src="${camSrc(c)}" style="width:100%;border-radius:10px;background:#222"><div style="margin-top:10px;display:flex;gap:6px"><button class="btn p" onclick="openCctv()">📺 실시간·PTZ 조작</button><span style="flex:1"></span><button class="btn" onclick="clearInterval(_camTimer);closeModal()">닫기</button></div>`); $('mbox').style.maxWidth='900px'; clearInterval(_camTimer); _camTimer=setInterval(()=>{ const b=$('camBig'); if(!b||!$('modal').classList.contains('on')){ clearInterval(_camTimer); $('mbox').style.maxWidth=''; return; } b.src=camSrc(c); },1500); }
+function camModal(i){ const c=CCTV.cams[i]; openModal(`<h3 style="margin:0 0 10px">📹 ${c.name} <span class="note">1초마다 갱신 (준실시간)</span></h3><img id="camBig" src="${camSrc(c)}" style="width:100%;border-radius:10px;background:#222"><div style="margin-top:10px;display:flex;gap:6px"><button class="btn p" onclick="openCctv()">📺 SiteEye 실시간·PTZ ↗</button><span style="flex:1"></span><button class="btn" onclick="clearInterval(_camTimer);closeModal()">닫기</button></div>`); $('mbox').style.maxWidth='900px'; clearInterval(_camTimer); _camTimer=setInterval(()=>{ const b=$('camBig'); if(!b||!$('modal').classList.contains('on')){ clearInterval(_camTimer); $('mbox').style.maxWidth=''; return; } b.src=camSrc(c); },1000); }
 setInterval(()=>{ if(!_camFail && !document.hidden) CCTV.cams.forEach((c,i)=>{ const im=$('cam'+i); if(im) im.src=camSrc(c); const ts=im&&im.parentNode.lastElementChild; if(ts){ const t=new Date(); ts.textContent=t.toTimeString().slice(0,8); } }); }, 5000);
 
 /* ===================== WEATHER ===================== */
