@@ -38,6 +38,10 @@ header.top .wrap{display:flex;align-items:center;gap:14px;padding-top:14px;paddi
 .pin .b span{transform:rotate(45deg);color:#fff;font-weight:800;font-size:13px}
 .pin .w{position:absolute;top:-8px;right:-10px;background:#fff;border:1.5px solid var(--red);color:var(--red);border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:800}
 .pin.dim{opacity:.35}
+.mark{position:absolute;transform:translate(-50%,-50%);z-index:3;cursor:pointer;line-height:1}
+.mark .d{width:22px;height:22px;border-radius:6px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.mark .lb{position:absolute;left:26px;top:2px;white-space:nowrap;background:rgba(255,255,255,.92);border-radius:5px;padding:1px 5px;font-size:11px;font-weight:700;color:#222;display:none}
+.mapbox.showlb .mark .lb{display:block}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:12px 18px;font-size:13px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
 .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:14px}
@@ -132,7 +136,7 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
       <div>
         <div class="sec-h"><h2>현장 배치 및 작업 위치</h2><span class="pill">핀을 눌러 상세 확인</span></div>
         <div class="card mapcard">
-          <div class="mh"><b>현장 평면도 (26.10)</b><span id="mapCnt"></span></div>
+          <div class="mh"><b>현장 평면도 (26.10)</b><span><label class="note" style="margin-right:10px"><input type="checkbox" id="mkOn" checked onchange="renderDash()"> PDF 장비위치</label><label class="note" style="margin-right:10px"><input type="checkbox" id="mkLb" onchange="renderDash()"> 이름표</label><span id="mapCnt"></span></span></div>
           <div class="zoom" onclick="openMap()">↗ 확대보기</div>
           <div class="mapbox" id="mapbox"><img id="mapimg"></div>
           <div class="legend" id="legend"></div>
@@ -386,8 +390,12 @@ function renderDash(){
     el.innerHTML=`<div class="b" style="background:${coColor(t.co)}"><span>${t.workers||0}</span></div>${isHR(t)?'<div class="w">!</div>':''}`;
     el.title=t.name; el.onclick=e=>{e.stopPropagation();showTask(t.id)}; mb.appendChild(el);
   }));
-  $('mapCnt').textContent=`작업 ${T.length} · 장비 ${act.reduce((a,t)=>a+eqSum(t),0)}대`;
-  $('legend').innerHTML=S.companies.map(c=>`<span><i style="background:${c.color}"></i>${esc(c.name)}</span>`).join('');
+  const MKC={발파:['#e0353a','발'],천공:['#e9891a','천'],정리:['#7a4ed6','정'],터파기:['#7a4ed6','터'],상차:['#2c5be0','상'],소할:['#0aa5b8','소']};
+  mb.querySelectorAll('.mark').forEach(p=>p.remove()); mb.classList.toggle('showlb', !!($('mkLb')&&$('mkLb').checked));
+  const md=(S.marks||{})[D];
+  if(md && (!$('mkOn')||$('mkOn').checked)) md.marks.forEach(m=>{ const c=MKC[m.k]||['#555','●']; const el=document.createElement('div'); el.className='mark'; el.style.left=m.x+'%'; el.style.top=m.y+'%'; el.title=m.t; el.innerHTML=`<div class="d" style="background:${c[0]}">${c[1]}</div>${m.dup?'':'<div class="lb">'+esc(m.t)+'</div>'}`; el.onclick=e=>{e.stopPropagation(); toast(m.t+' (평면도 PDF '+md.src+')');}; mb.appendChild(el); });
+  $('mapCnt').textContent=`작업 ${T.length} · 장비 ${act.reduce((a,t)=>a+eqSum(t),0)}대${md?' · PDF 표시 '+md.marks.filter(m=>!m.dup).length:''}`;
+  $('legend').innerHTML=S.companies.map(c=>`<span><i style="background:${c.color}"></i>${esc(c.name)}</span>`).join('') + ((S.marks||{})[D]? '<span style="flex-basis:100%;height:0"></span><span class="note">PDF 장비위치('+esc(S.marks[D].src)+'):</span>'+[['#e0353a','발파'],['#e9891a','천공'],['#2c5be0','상차/반출'],['#0aa5b8','소할'],['#7a4ed6','정리·터파기']].map(([c,n])=>`<span><i style="background:${c}"></i>${n}</span>`).join('') : '');
   // KPIs
   const w=workers(D), vul=vulOf(D);
   const hrT=act.filter(isHR), hrW=hrT.reduce((a,t)=>a+(+t.workers||0),0);
@@ -708,8 +716,10 @@ document.querySelectorAll('nav.bottom button').forEach(b=>b.onclick=()=>{ if(b.d
 function shiftDate(n){ if(n===0) D=todayStr(); else { const d=new Date(D); d.setDate(d.getDate()+n); D=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } $('date').value=D; renderAll(); autoSync(); }
 $('date').onchange=()=>{ D=$('date').value; renderAll(); autoSync(); };
 function renderAll(){ $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
+async function loadMarks(){ try{ const r=await fetch('planmarks.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.marks=j.days||{}; renderDash(); }catch(e){} }
 async function loadAttJson(){ try{ const r=await fetch('att.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); let n=0; for(const [d,v] of Object.entries(j.days||{})){ if((S.attSrc||{})[d] && !/자동/.test(S.attSrc[d]) && !/Gateware 일일 출역 \(11\/5/.test(S.attSrc[d])) continue; S.att[d]=v.rows; (S.attSrc=S.attSrc||{})[d]='Gateware 자동 ('+v.at+' 기준, 이름 일부 가림)'; n++; } if(n){ save(); renderAll(); } }catch(e){} }
-$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); renderCctv();
+$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); loadMarks(); renderCctv();
+setInterval(loadMarks, 10*60*1000);
 setInterval(loadAttJson, 10*60*1000);
 setInterval(()=>{ _autoDone[D]=0; autoSync(); }, 5*60*1000);
 </script>
