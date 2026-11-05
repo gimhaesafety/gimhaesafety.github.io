@@ -38,6 +38,32 @@ header.top .wrap{display:flex;align-items:center;gap:14px;padding-top:14px;paddi
 .pin .b span{transform:rotate(45deg);color:#fff;font-weight:800;font-size:13px}
 .pin .w{position:absolute;top:-8px;right:-10px;background:#fff;border:1.5px solid var(--red);color:var(--red);border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:800}
 .pin.dim{opacity:.35}
+.zb{position:absolute;transform:translate(-50%,-50%);z-index:2;cursor:pointer;color:#fff;font-weight:800;font-size:12px;padding:3px 8px;border-radius:8px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);white-space:nowrap;line-height:1.2}
+.zb.sel{outline:3px solid #111;transform:translate(-50%,-50%) scale(1.15)}
+.zb .n{background:#fff;color:#d00;border-radius:8px;padding:0 4px;margin-left:3px;font-size:11px}
+.zg{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:18px;padding:6px 12px;margin:0 6px 8px 0;cursor:pointer;background:#fff;font-size:13px}
+.zg.on{border-color:var(--blue);background:#eef3ff}
+.zg i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.zchip{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 14px;font-family:inherit;font-size:14px;cursor:pointer;min-width:96px;text-align:left}
+.zchip.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700}
+.zchip .c{font-size:11px;background:#fde4e4;color:var(--red);border-radius:8px;padding:0 6px;margin-left:4px}
+.gcard{background:#fff;border-radius:16px;box-shadow:0 1px 6px rgba(20,30,60,.06);padding:18px 20px;border-left:5px solid var(--blue)}
+.ckrow{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:10px 0}
+.ckrow .q{flex:1}.ckrow .q b{font-size:14px}.ckrow .q div{font-size:12px;color:var(--sub)}
+.ckrow button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;font-family:inherit;font-size:12px;cursor:pointer}
+.ckrow button.on.g{background:#e3f6ea;border-color:var(--green);color:var(--green);font-weight:700}
+.ckrow button.on.b{background:#fde4e4;border-color:var(--red);color:var(--red);font-weight:700}
+.ckrow button.on.n{background:#eef0f3;border-color:#999;color:#333;font-weight:700}
+.tp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.tp-box{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:14px}
+.tp-box .k{font-size:11px;color:var(--sub);margin-bottom:3px}
+.tp-sts{display:flex;gap:6px}.tp-sts button{flex:1;border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px;font-family:inherit;cursor:pointer}
+.tp-sts button.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700}
+.tp-sts button.cx{color:var(--red)}
+.tp-ck{display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;font-size:14px}
+.tp-ck input[type=number]{width:70px;padding:6px;border:1px solid var(--line);border-radius:8px}
+.tp-ox{display:flex;gap:4px}.tp-ox button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 10px;font-family:inherit;cursor:pointer;font-size:12px}
+.tp-ox button.on{background:#e6ecfd;border-color:var(--blue);color:var(--blue);font-weight:700}
 .mark{position:absolute;transform:translate(-50%,-50%);z-index:3;cursor:pointer;line-height:1}
 .mark .d{width:22px;height:22px;border-radius:6px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .mark .lb{position:absolute;left:26px;top:2px;white-space:nowrap;background:rgba(255,255,255,.92);border-radius:5px;padding:1px 5px;font-size:11px;font-weight:700;color:#222;display:none}
@@ -251,8 +277,22 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
 
   <!-- ============ ZONE ============ -->
   <section class="view" id="v-zone">
-    <div class="sec-h"><h2>구역별 보기</h2><span class="pill">구역을 눌러 작업 확인</span></div>
-    <div class="gridw" id="zoneGrid"></div>
+    <div class="dash">
+      <div>
+        <div class="sec-h"><h2>현장 배치도</h2><span class="pill">구역을 누르면 구역별 현황 · 책임구역 점검</span></div>
+        <div class="card mapcard">
+          <div class="mapbox" id="zmapbox"><img id="zmapimg"></div>
+          <div style="padding:12px 16px" id="zLegend"></div>
+        </div>
+        <div class="sec-h" style="margin-top:18px"><h2 id="zListTitle" style="font-size:17px"></h2><span class="pill" id="zListCnt"></span></div>
+        <div id="zTaskList"></div>
+      </div>
+      <div>
+        <div id="zGroupCard"></div>
+        <div class="sec-h" style="margin-top:22px"><h2>구역별 현황</h2><span class="pill">구역별 작업 분포 확인</span></div>
+        <div class="chips" id="zChips" style="gap:8px"></div>
+      </div>
+    </div>
   </section>
 
   <!-- ============ WORKERS ============ -->
@@ -282,8 +322,27 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
 
   <!-- ============ ADMIN ============ -->
   <section class="view" id="v-admin">
-    <div class="sec-h"><h2>관리</h2></div>
-    <div class="gridw">
+    <div class="sec-h"><h2>관리</h2><button class="btn" id="lockBtn" onclick="adminLock()" style="display:none">🔒 잠그기</button></div>
+    <div id="adminLockBox" class="card" style="max-width:420px;margin:30px auto;text-align:center">
+      <div style="font-size:40px">🔒</div><h3>관리자 인증</h3>
+      <p class="note">관리 기능(평면도·업체·구역·책임구역 담당자·백업 등)은 비밀번호 입력 후 사용할 수 있습니다.</p>
+      <input type="password" id="adminPw" placeholder="비밀번호" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:15px" onkeydown="if(event.key==='Enter')adminUnlock()">
+      <button class="bigbtn" onclick="adminUnlock()">확인</button>
+      <div class="note" id="adminMsg" style="color:var(--red);margin-top:8px"></div>
+    </div>
+    <div class="gridw" id="adminBody" style="display:none">
+      <div class="card" style="grid-column:1/-1"><h3 style="margin-top:0">안전책임구역 · 담당자 지정</h3>
+        <div class="note" style="margin-bottom:8px">구역은 쉼표로 구분 (예: 산업J, 산업K). 구역 이름은 평면도 이름과 같아야 합니다.</div>
+        <div id="grpEdit"></div>
+        <button class="btn" onclick="(S.groups=S.groups||JSON.parse(JSON.stringify(DEF_GROUPS))).push({id:'g'+Date.now(),name:(S.groups.length+1)+'구역',color:'#555555',zones:[],arch:'',safe:''});save();renderAdmin()">+ 구역 추가</button>
+        <button class="btn p" onclick="saveGroups()">저장</button>
+      </div>
+      <div class="card" style="grid-column:1/-1"><h3 style="margin-top:0">책임구역 CHECK LIST 항목</h3>
+        <div class="note" style="margin-bottom:8px">한 줄에 한 항목 · "항목|설명" 형식</div>
+        <textarea id="ckEdit" rows="10" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit"></textarea>
+        <button class="btn p" onclick="S.checkItems=$('ckEdit').value.split('\n').map(s=>s.trim()).filter(Boolean);save();toast('저장')">저장</button>
+        <button class="btn" onclick="S.checkItems=null;save();renderAdmin()">기본값으로</button>
+      </div>
       <div class="card"><h3 style="margin-top:0">평면도</h3>
         <div class="drop" id="dropPdf">평면도 PDF 또는 이미지 업로드<br><span class="note">PDF면 작업사항·장비 라벨을 읽어 작업을 자동 등록할지 묻습니다</span></div>
         <input type="file" id="fPdf2" accept=".pdf,image/*" hidden>
@@ -433,24 +492,42 @@ function taskCard(t){
 }
 function showTop(){ const tc=(S.topchk||{})[D]; if(!tc){ return toast('i-safety 상등급 점검일지에 이 날짜 기록이 없습니다'); } const s=tc.sum||{}; openModal(`<h3 style="margin-top:0">i-safety 상등급 점검일지 · ${D}</h3><div class="note" style="margin-bottom:10px">전체 ${s.total??'-'} · 양호 ${s.good??'-'} · 불량 ${s.bad??'-'} · 작업없음 ${s.nowork??'-'} · 미점검 ${s.unchecked??'-'}</div>`+(tc.items? tc.items.map(it=>`<div style="border-top:1px solid var(--line);padding:8px 0"><b>${esc(it.co)}</b> · ${esc(it.trade)} · ${esc(it.loc)} <span class="tag ${/작업없음/.test(it.result)?'':'top'}">${esc(it.result||'-')}</span><div style="font-size:13px;margin-top:4px">작업: ${esc(it.work)}<br>위험요인: ${esc(it.risk)}</div></div>`).join('') : '<div class="note">상세 항목은 당일 아침 자동 업데이트 때만 수집됩니다.</div>')+'<p><button class="btn" onclick="closeModal()">닫기</button></p>'); }
 function showCk(i){ const c=_ck[i]; if(!c[2]) return; openModal(`<h3 style="margin-top:0">${esc(c[1])}</h3>`+c[2].map(taskCard).join('')+'<button class="btn" onclick="closeModal()">닫기</button>'); }
+let TP=null;
 function showTask(id){
   const t=S.tasks.find(x=>x.id===id); if(!t) return;
+  TP={id, ptw:t.ptw||'', haz:t.haz||'', watch:t.watch||''};
   const vul=vulOf(t.date); const vm=Object.fromEntries(vul.map(v=>[v.n,v]));
-  const row=(k,v)=>`<div>${k}</div><div>${v||'-'}</div>`;
-  openModal(`<h3 style="margin:0 0 4px">${esc(t.name)} <span class="st ${t.status}" style="font-size:12px">${t.status}</span></h3>
-   <div class="note" style="margin-bottom:12px"><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${coColor(t.co)}"></i> ${esc(t.co)} · ${esc(t.trade)} · ${t.date}</div>
-   <div class="kv">${row('작업 구역',esc((t.zones||[]).join(', '))+(t.loc?' / '+esc(t.loc):''))}${row('인원 · 시간',`${t.workers||0}명 · ${esc(t.start)}~${esc(t.end)} (${esc(t.early||'정규')})`)}
-   ${row('투입 장비',(t.eq||[]).map(e=>esc(e.t)+' '+e.n+'대').join(', '))}
-   ${row('투입 근로자',(t.crew||[]).map(n=>esc(n)+(vm[n]?' '+vm[n].f.map(f=>`<span class="chip c-${f[0]}">${esc(f[1])}</span>`).join(''):'')).join(', '))}
-   ${row('고위험 작업',(t.hr||[]).map(h=>`<span class="tag hr">${esc(h)}</span>`).join(''))}
-   ${row('PTW / 상등급',`${t.ptw||'-'} / ${t.top||'-'}`)}${row('유해물질 반입',`${t.haz||'-'}`)}
-   ${row('작업지휘자',esc(t.leader))}${row('관리감독자',esc([t.supSub,t.supHdc].filter(Boolean).join(' / ')))}${row('안전관리자',esc(t.safe))}
-   ${row('전담자',t.watch==='O'?esc(t.watcher||'배치'):'<b style="color:var(--red)">미배치</b>')}${row('재해유형',esc(t.acc))}${row('작업제외구역',esc(t.excl))}
-   ${row('안전중점포인트',esc(t.detail).replace(/\n/g,'<br>'))}${row('비고',esc(t.note))}</div>
-   <div style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap">
-   ${['예정','진행중','완료','작업취소'].map(s=>`<button class="btn ${s===t.status?'p':''}" onclick="setStatus('${t.id}','${s}')">${s}</button>`).join('')}
-   <span style="flex:1"></span><button class="btn" onclick="editTask('${t.id}')">수정</button><button class="btn" onclick="copyTask('${t.id}')">복제</button><button class="btn d" onclick="delTask('${t.id}')">삭제</button><button class="btn" onclick="closeModal()">닫기</button></div>`);
+  const box=(k,v)=>`<div class="tp-box"><div class="k">${k}</div>${v||'-'}</div>`;
+  const hrs=(t.hr||[]).filter(h=>h!=='해당 없음');
+  const autoPt = t.detail || [(t.topInfo||[]).join('\n'), ((S.hirisk||{})[t.date]||[]).filter(h=>norm(h.co)===norm(t.co)).map(h=>h.measures).join('\n')].filter(Boolean).join('\n');
+  const pins=(t.pins&&t.pins.length)?t.pins:(t.zones||[]).filter(z=>(S.zonePos||{})[z]).map(z=>S.zonePos[z]);
+  openModal(`<div class="note">${esc(t.co)} · ${esc(t.trade||'')}</div>
+   <div style="display:flex;align-items:flex-start;gap:8px"><h3 style="margin:2px 0 10px;flex:1">${esc(t.name)}</h3><button class="btn" onclick="closeModal()">✕</button></div>
+   <div>${hrs.map(h=>'<span class="tag hr">⚠ '+esc(h)+(t.hrSrc?' · i-safety':'')+'</span>').join('')}${t.top==='O'?'<span class="tag top">상등급'+(t.topInfo?' · i-safety':'')+'</span>':''}${(t.eq||[]).map(e=>'<span class="tag eq">'+esc(e.t)+' '+e.n+'대</span>').join('')}</div>
+   <div class="tp-sts" style="margin-top:10px">${['예정','진행중','완료','작업취소'].map(s=>`<button class="${s===t.status?'on':''} ${s==='작업취소'?'cx':''}" onclick="setStatus('${t.id}','${s}')">${s}</button>`).join('')}</div>
+   <div class="tp-grid">${box('📅 작업일',t.date)}${box('🕘 시간',esc(t.start)+'~'+esc(t.end)+(t.early==='조출'?' (조출)':''))}${box('👥 인원',(t.workers||0)+'명')}${box('🏢 위치',esc((t.zones||[]).join(', ')))}</div>
+   ${box('📍 상세 위치',esc(t.loc))}
+   <div style="margin-top:12px"><div style="font-weight:700;font-size:14px;margin-bottom:6px">🛡 안전중점포인트 (작업내용 상세)</div>
+   <textarea id="tpDetail" rows="4" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:14px" placeholder="작업 상세 내용과 안전 중점사항을 입력하세요">${esc(autoPt)}</textarea>
+   ${!t.detail&&autoPt?'<div class="note">※ i-safety 개선대책에서 자동으로 불러온 내용입니다. 수정 후 저장하세요.</div>':''}</div>
+   <div style="margin-top:14px"><div style="font-weight:700;font-size:14px;margin-bottom:8px">✅ 안전 점검 항목</div>
+   <div class="tp-box"><div class="tp-ck">
+     <span>작업대 수량 <span class="note">(말비계·안전사다리)</span></span><input type="number" id="tpWb" min="0" value="${+t.wb||0}">
+     <span>절단공구 수량 <span class="note">(그라인더·고속절단기)</span></span><input type="number" id="tpCut" min="0" value="${+t.cut||0}">
+     <span>작업계획서 / 사전작업허가서(PTW)</span><div class="tp-ox">${['O','X'].map(v=>`<button class="${TP.ptw===v?'on':''}" onclick="tpOx('ptw','${v}',this)">${v==='O'?'해당(O)':'미해당(X)'}</button>`).join('')}</div>
+     <span>위험성평가 상등급 <span class="note">(i-safety 상등급 점검일지)</span></span><b style="color:${t.top==='O'?'#b86800':'var(--sub)'}">${t.top==='O'?'해당(O)':'미해당(X)'}</b>
+     <span>유해위험물질 반입</span><div class="tp-ox">${['O','X'].map(v=>`<button class="${TP.haz===v?'on':''}" onclick="tpOx('haz','${v}',this)">${v==='O'?'반입(O)':'미반입(X)'}</button>`).join('')}</div>
+     <span>안전전담자 배치</span><div class="tp-ox">${['O','X'].map(v=>`<button class="${TP.watch===v?'on':''}" onclick="tpOx('watch','${v}',this)">${v==='O'?'배치':'미배치'}</button>`).join('')}</div>
+     <span>전담자 성명</span><input id="tpWatcher" value="${esc(t.watcher||'')}" placeholder="성명" style="width:120px;padding:6px;border:1px solid var(--line);border-radius:8px">
+   </div></div></div>
+   <div class="tp-grid">${box('작업지휘자',esc(t.leader))}${box('관리감독자 (협력사)',esc(t.supSub))}${box('관리감독자 (HDC)',esc(t.supHdc))}${box('안전관리자 (HDC)',esc(t.safe))}</div>
+   ${(t.crew||[]).length?box('투입 근로자',(t.crew||[]).map(n=>esc(n)+(vm[n]?' '+vm[n].f.map(f=>'<span class="chip c-'+f[0]+'">'+esc(f[1])+'</span>').join(''):'')).join(', ')):''}
+   ${t.note?'<div class="note" style="margin-top:8px">비고: '+esc(t.note)+'</div>':''}
+   <div style="display:flex;gap:6px;margin-top:14px"><button class="btn" style="flex:1;padding:10px" onclick="copyTask('${t.id}')">⧉ 복사</button><button class="btn" style="flex:1;padding:10px" onclick="editTask('${t.id}')">✎ 수정</button><button class="btn d" style="flex:1;padding:10px" onclick="delTask('${t.id}')">🗑 삭제</button><button class="btn p" style="flex:2;padding:10px" onclick="saveTP()">저장</button></div>
+   ${pins.length?`<div style="font-weight:700;margin:16px 0 8px">도면 위치</div><div style="position:relative;line-height:0;border-radius:10px;overflow:hidden"><img src="${S.map}" style="width:100%">${pins.map(p=>`<div class="pin" style="left:${p.x}%;top:${p.y}%"><div class="b" style="background:${coColor(t.co)}"><span>${t.workers||0}</span></div></div>`).join('')}</div>`:''}`);
 }
+function tpOx(k,v,btn){ TP[k]=v; btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
+function saveTP(){ const t=S.tasks.find(x=>x.id===TP.id); if(!t) return; t.detail=$('tpDetail').value; t.wb=+$('tpWb').value||0; t.cut=+$('tpCut').value||0; t.ptw=TP.ptw; t.haz=TP.haz; t.watch=TP.watch; t.watcher=$('tpWatcher').value.trim(); t.edited=true; save(); renderAll(); toast('저장했습니다'); closeModal(); }
 function setStatus(id,s){ const t=S.tasks.find(x=>x.id===id); t.status=s; save(); renderAll(); showTask(id); }
 function delTask(id){ if(!confirm('삭제할까요?')) return; S.tasks=S.tasks.filter(x=>x.id!==id); save(); closeModal(); renderAll(); }
 function copyTask(id){ const t=S.tasks.find(x=>x.id===id); const n={...JSON.parse(JSON.stringify(t)), id:uid(), name:t.name+' (복제)'}; S.tasks.push(n); save(); closeModal(); renderAll(); toast('복제했습니다'); }
@@ -573,10 +650,66 @@ function renderStatus(){
    T.map(t=>`<tr><td><select onchange="setStatusQ('${t.id}',this.value)">${['예정','진행중','완료','작업취소'].map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></td><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${coColor(t.co)}"></i> ${esc(t.co)}</td><td><a href="#" onclick="showTask('${t.id}');return false"><b>${esc(t.name)}</b></a></td><td>${esc((t.zones||[]).join(', '))}</td><td>${t.workers}</td><td>${t.start}~${t.end}</td><td>${(t.eq||[]).map(e=>e.t+' '+e.n).join(', ')}</td><td>${isHR(t)?'<span class="tag hr">'+esc(t.hr.filter(h=>h!=='해당 없음').join(', '))+'</span>':'-'}</td><td>${t.ptw||'-'}</td><td>${t.top||'-'}</td><td style="color:${t.watch==='O'?'var(--green)':'var(--red)'}">${t.watch==='O'?esc(t.watcher||'배치'):'미배치'}</td><td><button class="btn" onclick="editTask('${t.id}')">수정</button></td></tr>`).join('') + (T.length?'':'<tr><td colspan="13" style="text-align:center;color:#888;padding:30px">등록된 작업이 없습니다</td></tr>');
 }
 function setStatusQ(id,s){ S.tasks.find(x=>x.id===id).status=s; save(); renderDash(); }
+const DEF_GROUPS=[
+ {id:'g1',name:'1구역',color:'#2c5be0',zones:['지원D','주차장1','지원C','산업B','산업C','산업A','소공원3','주차장5'],arch:'',safe:''},
+ {id:'g2',name:'2구역',color:'#1f9d55',zones:['산업J','산업K','산업L','산업M'],arch:'',safe:''},
+ {id:'g3',name:'3구역',color:'#e9891a',zones:['산업D','산업E','지원A','지원B','저류지2','오수처리장2','가압장','주차장2','공원2'],arch:'',safe:''},
+ {id:'g4',name:'4구역',color:'#7a4ed6',zones:['산업F','배수지','폐기물처리장'],arch:'',safe:''},
+ {id:'g5',name:'5구역',color:'#0aa5b8',zones:['산업G','산업H','산업I','주차장3','주차장4','공공공지','지원E','공원1'],arch:'',safe:''},
+ {id:'g6',name:'6구역',color:'#e0353a',zones:['저류지1','오수처리장1','주거','보강토3호','보강토4호'],arch:'',safe:''}];
+const DEF_CHECK=['작업장의 정리정돈 상태|보행자·장비 통행로 확보 여부 등','법면·단부 추락위험구간 안전난간 설치|굴착 단부, 옹벽 상부, 개구부 등','근로자의 보호구 착용 상태|안전모·안전대·안전화 착용 등','장비 유도원·신호수 배치|굴착기·덤프·롤러 작업반경 통제','차량계 건설기계 운행상태 점검|B/H, 덤프, 천공기, 롤러 등 후방경보·4채널영상','발파 경계·대피 통제|발파 위치·시간 공지, 사이렌, 대피 확인','법면 낙석·토사붕괴 위험|우천 후 지반 이완, 부석 정리','가설도로 상태 및 살수|노면 패임, 미끄럼, 비산먼지','덤프 하역지반 상태|지반 침하·연약 여부, 다이크 설치','중량물 줄걸이 상태|슬링벨트 마모, 후크 해지장치','소화설비 설치 여부|소화기 비치, 화기작업 감시','전기기계·기구 접지 및 공도구 점검|분전반 시건, 공도구 필증','작업구간 출입통제|통제선·표지판 설치, 관계자외 출입금지','상·하 동시작업 금지|보강토·옹벽 블럭 쌓기 등','인화성물질 방치 여부|유류, 가연성 자재 보관','자재 정리 및 관리번호 부착|자재보관 실명제'];
+const AREA_RE=/^(중|소)\(|진입도로|램프구간|사면/;
+let ZSEL=null, ZGRP=null;
+function grpOf(z){ return (S.groups||DEF_GROUPS).find(g=>g.zones.includes(z)); }
+function zChecked(gid,d){ return ((S.zchecks||{})[d||D]||{})[gid]; }
 function renderZone(){
+  const G=S.groups||DEF_GROUPS; const zp=S.zonePos||{};
   const T=tasksOf(D).filter(t=>t.status!=='작업취소');
-  $('zoneGrid').innerHTML=S.zones.map(z=>{ const ts=T.filter(t=>(t.zones||[]).includes(z)); return `<div class="card" style="${ts.some(isHR)?'border-left:4px solid var(--red)':''};opacity:${ts.length?1:.55}"><div style="display:flex;justify-content:space-between"><b style="font-size:16px">${esc(z)}</b><span class="pill">${ts.length}건 · ${ts.reduce((a,t)=>a+(+t.workers||0),0)}명 · 장비 ${ts.reduce((a,t)=>a+eqSum(t),0)}</span></div>${ts.map(t=>`<div style="margin-top:8px;cursor:pointer" onclick="showTask('${t.id}')"><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${coColor(t.co)}"></i> ${esc(t.name)} ${isHR(t)?'<span class="tag hr">고위험</span>':''}</div>`).join('')||'<div class="note" style="margin-top:8px">작업 없음</div>'}</div>`; }).join('');
+  const areas=Object.keys(zp).filter(z=>!AREA_RE.test(z));
+  if(!ZSEL){ ZSEL=areas.find(z=>T.some(t=>(t.zones||[]).includes(z)))||areas[0]; }
+  ZGRP = grpOf(ZSEL) || G[0];
+  // map
+  $('zmapimg').src=S.map; const mb=$('zmapbox'); mb.querySelectorAll('.zb').forEach(e=>e.remove());
+  areas.forEach(z=>{ const g=grpOf(z); const p=zp[z]; const n=T.filter(t=>(t.zones||[]).includes(z)).length; const ck=g&&zChecked(g.id); const el=document.createElement('div'); el.className='zb'+(z===ZSEL?' sel':''); el.style.left=p.x+'%'; el.style.top=p.y+'%'; el.style.background=g?g.color:'#666'; el.innerHTML=esc(z.replace(/^산업/,'산업 '))+(ck?' ✓':'')+(n?'<span class="n">'+n+'</span>':''); el.onclick=()=>{ ZSEL=z; renderZone(); }; mb.appendChild(el); });
+  // legend
+  $('zLegend').innerHTML = G.map(g=>`<span class="zg ${ZGRP&&g.id===ZGRP.id?'on':''}" onclick="ZSEL=(S.groups||DEF_GROUPS).find(x=>x.id==='${g.id}').zones[0];renderZone()"><i style="background:${g.color}"></i><b>${esc(g.name)}</b> <span class="note">${zChecked(g.id)?'<span style="color:var(--green)">✓ 점검</span>':esc(g.zones.slice(0,2).join('·'))+(g.zones.length>2?' 외':'')}</span></span>`).join('') + '<div class="note" style="margin-top:4px">담당자: '+G.map(g=>esc(g.name)+' '+esc([g.arch,g.safe].filter(Boolean).join('·')||'미지정')).join(' / ')+'</div>';
+  // group card
+  const ck=ZGRP&&zChecked(ZGRP.id);
+  $('zGroupCard').innerHTML = ZGRP? `<div class="gcard" style="border-left-color:${ZGRP.color}"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0;color:${ZGRP.color}">📋 ${esc(ZGRP.name)} 안전책임구역 점검</h3><span class="tag" style="${ck?'background:#e3f6ea;color:var(--green)':'background:#fdf0de;color:#b86800'}">${ck?'오늘 점검완료 · '+esc(ck.by):'오늘 미점검'}</span></div>
+    <div style="margin-top:10px;font-size:14px">담당구역 <b>${esc(ZGRP.zones.join(', '))}</b></div>
+    <div style="margin-top:4px;font-size:14px">담당 <b>${esc(ZGRP.arch||'미지정')}</b> · 안전 <b>${esc(ZGRP.safe||'미지정')}</b></div>
+    <div class="note" style="margin-top:4px">1일 1회 이상 점검 · 담당자가 각각 점검 가능 · ${D}${ck?' · 불량 '+Object.values(ck.res||{}).filter(v=>v==='불량').length+'건':''}</div>
+    <button class="bigbtn" style="background:${ZGRP.color}" onclick="openZoneCheck('${ZGRP.id}')">${ck?'점검 결과 보기 / 다시 점검':'점검하기'} ›</button></div>` : '';
+  // chips
+  $('zChips').innerHTML = areas.map(z=>{ const n=T.filter(t=>(t.zones||[]).includes(z)).length; return `<button class="zchip ${z===ZSEL?'on':''}" onclick="ZSEL='${z}';renderZone()">🏗 ${esc(z)}${n?'<span class="c">'+n+'</span>':''}</button>`; }).join('');
+  // tasks
+  const L=T.filter(t=>(t.zones||[]).includes(ZSEL));
+  $('zListTitle').innerHTML=esc(ZSEL)+' <span style="color:var(--sub);font-weight:400">작업</span>'; $('zListCnt').textContent=L.length+'건';
+  const byCo={}; L.forEach(t=>(byCo[t.co]=byCo[t.co]||[]).push(t));
+  $('zTaskList').innerHTML = L.length? Object.entries(byCo).map(([co,ts])=>`<div class="grp ${ts.some(isHR)?'hr':''}"><div class="gh"><span>${ts.some(isHR)?'⚠ ':''}${esc(co)}</span><span class="cnt">${ts.length}건</span></div>${ts.map(taskCard).join('')}</div>`).join('') : '<div class="card" style="text-align:center;color:#888">이 구역에 등록된 작업이 없습니다</div>';
 }
+let CKS={};
+function openZoneCheck(gid){
+  const g=(S.groups||DEF_GROUPS).find(x=>x.id===gid); const items=S.checkItems||DEF_CHECK; const prev=zChecked(gid)||{};
+  CKS={gid, res:Object.assign({},prev.res||{})};
+  const people=[g.arch&&g.arch+' (담당)', g.safe&&g.safe+' (안전)'].filter(Boolean);
+  openModal(`<div style="display:flex;align-items:center"><h3 style="margin:0;flex:1;color:${g.color}">${esc(g.name)} 안전책임구역제 CHECK LIST</h3><button class="btn" onclick="closeModal()">✕</button></div>
+   <div class="note" style="margin:6px 0 12px">현장명 김해 사이언스파크 · 점검구역 ${esc(g.zones.join(', '))} · 점검일 ${D}</div>
+   <label class="l" style="font-size:13px;font-weight:600">점검자</label>
+   <input class="in" id="ckBy" list="ckPeople" value="${esc(prev.by||people[0]||'')}" placeholder="점검자 성명" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;margin:6px 0 10px"><datalist id="ckPeople">${people.map(p=>'<option value="'+esc(p)+'">').join('')}</datalist>
+   <div style="display:flex;gap:8px"><button class="btn" style="flex:1;padding:10px" onclick="ckAll('양호')">전체 양호</button><button class="btn" style="flex:1;padding:10px" onclick="ckAll('해당없음')">작업없음</button><button class="btn" style="flex:1;padding:10px" onclick="ckAll(null)">전체 지우기</button></div>
+   <div class="note" style="text-align:right;margin:8px 0" id="ckCnt"></div>
+   <div style="font-weight:700;margin:6px 0">1. 공통 점검 항목</div>
+   <div id="ckList"></div>
+   <div style="font-weight:700;margin:14px 0 6px">2. 건의사항</div>
+   <textarea id="ckMemo" rows="3" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:8px;font-family:inherit">${esc(prev.memo||'')}</textarea>
+   <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" style="flex:1;padding:12px" onclick="closeModal()">닫기</button><button class="btn p" style="flex:2;padding:12px" onclick="saveZoneCheck()">점검 저장</button></div>`);
+  drawCk();
+}
+function drawCk(){ const items=S.checkItems||DEF_CHECK; $('ckList').innerHTML=items.map((it,i)=>{ const [q,s]=it.split('|'); const v=CKS.res[i]; return `<div class="ckrow"><span class="note" style="width:18px">${i+1}</span><div class="q"><b>${esc(q)}</b>${s?'<div>'+esc(s)+'</div>':''}</div><button class="${v==='양호'?'on g':''}" onclick="CKS.res[${i}]='양호';drawCk()">양호</button><button class="${v==='불량'?'on b':''}" onclick="CKS.res[${i}]='불량';drawCk()">불량</button><button class="${v==='해당없음'?'on n':''}" onclick="CKS.res[${i}]='해당없음';drawCk()">해당없음</button></div>`; }).join(''); $('ckCnt').textContent=Object.values(CKS.res).filter(Boolean).length+'/'+items.length+' 확인'; }
+function ckAll(v){ const n=(S.checkItems||DEF_CHECK).length; CKS.res={}; if(v) for(let i=0;i<n;i++) CKS.res[i]=v; drawCk(); }
+function saveZoneCheck(){ const n=(S.checkItems||DEF_CHECK).length; const done=Object.values(CKS.res).filter(Boolean).length; const by=$('ckBy').value.trim(); if(!by) return alert('점검자를 입력하세요'); if(done<n && !confirm(`${n-done}개 항목이 미확인입니다. 저장할까요?`)) return; ((S.zchecks=S.zchecks||{})[D]=S.zchecks[D]||{})[CKS.gid]={by, res:CKS.res, memo:$('ckMemo').value, at:new Date().toTimeString().slice(0,5)}; save(); closeModal(); renderZone(); toast('점검 저장 완료'); }
+
 
 /* ===================== WORKERS VIEW ===================== */
 function bars(el,m){ const e=Object.entries(m).sort((a,b)=>b[1]-a[1]), mx=Math.max(1,...e.map(x=>x[1])); $(el).innerHTML=e.map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px"><div style="width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(k)}">${esc(k)}</div><div style="flex:1;background:#eef1f6;border-radius:4px;height:14px"><div style="width:${v/mx*100}%;height:100%;background:var(--blue);border-radius:4px"></div></div><b style="width:30px;text-align:right">${v}</b></div>`).join('')||'<div class="note">데이터 없음</div>'; }
@@ -691,8 +824,8 @@ async function syncSheet(tabName, silent){
       const locN=zl(x.loc); const zones=S.zones.filter(z=>locN.split(/[,，]/).map(s=>s.trim()).some(s=>s===z||s.startsWith(z+' '))); const eqObjs={}; x.eq.forEach(e=>{ const k=/굴착기|백호|B\/H/.test(e)?'B/H':/천공/.test(e)?'천공기':/덤프/.test(e)?'덤프트럭':/롤러/.test(e)?'진동롤러':/살수/.test(e)?'살수차':/브레이커/.test(e)?'브레이커':/크레인/.test(e)?'크레인':'기타'; eqObjs[k]=(eqObjs[k]||0)+1; });
       return {id:uid(),date:D,co:x.co,name:x.name,trade:/발파/.test(x.name)?'발파':/천공/.test(x.name)?'천공':/보강토/.test(x.loc+x.name)?'보강토':/포설|포장/.test(x.name)?'포장':/관로|관부설|흄관|풀륨/.test(x.name)?'배수':'토공',status:'진행중',zones,loc:x.loc,workers:Math.max(1,x.eq.length),start:'07:00',end:'17:00',crew:[],
         eq:Object.entries(eqObjs).map(([t,n])=>({t,n})), detail:x.eq.length?'장비: '+x.eq.join(', '):'', hr:x.hr?hrTypes(x.name,x.eq.join(' ')):['해당 없음'], ptw:'', top:x.top?'O':'X', signal:x.eq.length?'':'X', haz:x.haz?'O':'X',
-        leader:x.leader, supSub:x.supSub, supHdc:x.supHdc, safe:'', watch:'', watcher:'', acc:'', excl:'', early:'정규', note:`구글시트 '${name}' 연동${x.wb&&x.wb!=='0'?' / 작업대 '+x.wb:''}${x.cut&&x.cut!=='0'?' / 절단공구 '+x.cut:''}${x.hazN?' / 유해물질 '+x.hazN:''}`, pins }; });
-    nt.forEach(t=>{ t.src='sheet'; const prev=old.find(o=>o.name===t.name&&o.loc===t.loc); if(prev){ ['status','watch','watcher','signal','ptw','safe','crew','workers','start','end','early','acc','excl'].forEach(k=>{ if(prev[k]!==undefined&&prev[k]!==''&&!(Array.isArray(prev[k])&&!prev[k].length)) t[k]=prev[k]; }); if(prev.pins&&prev.pins.length) t.pins=prev.pins; } const ex=S.companies.find(c=>norm(c.name)===norm(t.co)); if(ex) t.co=ex.name; if(!ex) S.companies.push({name:t.co,color:['#2c5be0','#e0353a','#1f9d55','#e9891a','#7a4ed6','#0aa5b8','#c2185b'][S.companies.length%7]}); });
+        leader:x.leader, supSub:x.supSub, supHdc:x.supHdc, wb:+x.wb||0, cut:+x.cut||0, hazName:x.hazN||'', safe:'', watch:'', watcher:'', acc:'', excl:'', early:'정규', note:`구글시트 '${name}' 연동${x.wb&&x.wb!=='0'?' / 작업대 '+x.wb:''}${x.cut&&x.cut!=='0'?' / 절단공구 '+x.cut:''}${x.hazN?' / 유해물질 '+x.hazN:''}`, pins }; });
+    nt.forEach(t=>{ t.src='sheet'; const prev=old.find(o=>o.name===t.name&&o.loc===t.loc); if(prev){ ['status','watch','watcher','ptw','safe','crew','workers','start','end','early','acc','excl','detail','wb','cut','haz'].forEach(k=>{ if(prev[k]!==undefined&&prev[k]!==''&&!(Array.isArray(prev[k])&&!prev[k].length)) t[k]=prev[k]; }); if(prev.pins&&prev.pins.length) t.pins=prev.pins; } const ex=S.companies.find(c=>norm(c.name)===norm(t.co)); if(ex) t.co=ex.name; if(!ex) S.companies.push({name:t.co,color:['#2c5be0','#e0353a','#1f9d55','#e9891a','#7a4ed6','#0aa5b8','#c2185b'][S.companies.length%7]}); });
     const sig=JSON.stringify(list); if(silent && S.sheetSig && S.sheetSig[D]===sig) return 'same';
     (S.sheetSig=S.sheetSig||{})[D]=sig;
     S.tasks=S.tasks.filter(t=>t.date!==D).concat(nt); applyHighRisk(D); save(); renderAll(); if(!silent) go('dash'); toast(`구글시트 '${name}' ${nt.length}건 ${silent?'자동 ':''}반영`); return 'ok';
@@ -702,7 +835,17 @@ const _autoDone={};
 async function autoSync(){ const d=D; if(!S.sheetUrl||_autoDone[d]) return; const T=tasksOf(d); if(T.some(t=>t.src!=='sheet')) return; _autoDone[d]=1; const r=await syncSheet(null,true); const el=$('syncInfo'); if(el) el.textContent = r==='notab'? '구글시트에 이 날짜 탭이 없습니다' : r==='err'? '구글시트 연결 실패' : '구글시트 연동됨'; }
 
 /* ===================== ADMIN ===================== */
+const ADMIN_HASH='6292350974f386e88903fe6b78b6b55a951fd694ff91394ccc511d9ea4e3a406';
+async function sha256(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function adminShow(){ const ok=sessionStorage.getItem('sosAdmin')==='1'; $('adminLockBox').style.display=ok?'none':'block'; $('adminBody').style.display=ok?'grid':'none'; $('lockBtn').style.display=ok?'inline-block':'none'; }
+async function adminUnlock(){ const h=await sha256($('adminPw').value); if(h===ADMIN_HASH){ sessionStorage.setItem('sosAdmin','1'); $('adminPw').value=''; $('adminMsg').textContent=''; adminShow(); renderAdmin(); } else { $('adminMsg').textContent='비밀번호가 맞지 않습니다'; } }
+function adminLock(){ sessionStorage.removeItem('sosAdmin'); adminShow(); }
+function saveGroups(){ const G=S.groups=S.groups||JSON.parse(JSON.stringify(DEF_GROUPS)); document.querySelectorAll('#grpEdit .gr').forEach((row,i)=>{ const q=c=>row.querySelector(c).value; G[i].name=q('.gn'); G[i].color=q('.gc'); G[i].zones=q('.gz').split(/[,，]/).map(s=>s.trim()).filter(Boolean); G[i].arch=q('.ga').trim(); G[i].safe=q('.gs').trim(); }); save(); toast('책임구역 저장'); renderAll(); }
 function renderAdmin(){
+  adminShow();
+  const G=S.groups||DEF_GROUPS;
+  $('grpEdit').innerHTML=G.map((g,i)=>`<div class="gr" style="display:grid;grid-template-columns:40px 90px 1fr 130px 130px 34px;gap:6px;margin-bottom:6px;align-items:center"><input type="color" class="gc" value="${g.color}"><input class="gn" value="${esc(g.name)}" style="padding:6px;border:1px solid var(--line);border-radius:6px"><input class="gz" value="${esc(g.zones.join(', '))}" style="padding:6px;border:1px solid var(--line);border-radius:6px"><input class="ga" value="${esc(g.arch||'')}" placeholder="담당자" style="padding:6px;border:1px solid var(--line);border-radius:6px"><input class="gs" value="${esc(g.safe||'')}" placeholder="안전 담당" style="padding:6px;border:1px solid var(--line);border-radius:6px"><button class="btn d" onclick="(S.groups=S.groups||JSON.parse(JSON.stringify(DEF_GROUPS))).splice(${i},1);save();renderAdmin()">×</button></div>`).join('');
+  $('ckEdit').value=(S.checkItems||DEF_CHECK).join('\n');
   $('coEdit').innerHTML=S.companies.map((c,i)=>`<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center"><input type="color" value="${c.color}" onchange="S.companies[${i}].color=this.value;save();renderAll()"><input class="in" style="flex:1;padding:6px;border:1px solid var(--line);border-radius:6px" value="${esc(c.name)}" onchange="S.tasks.forEach(t=>{if(t.co===S.companies[${i}].name)t.co=this.value});S.companies[${i}].name=this.value;save();renderAll()"><button class="btn d" onclick="S.companies.splice(${i},1);save();renderAll()">×</button></div>`).join('')+
    `<div class="note" style="margin-top:8px">PDF 자동등록 업체 추정 규칙 (키워드 → 업체)</div>`+S.rules.map((r,i)=>`<div style="display:flex;gap:6px;margin-top:4px"><input style="width:45%;padding:5px;border:1px solid var(--line);border-radius:6px" value="${esc(r.kw)}" onchange="S.rules[${i}].kw=this.value;save()"><input style="flex:1;padding:5px;border:1px solid var(--line);border-radius:6px" value="${esc(r.co)}" onchange="S.rules[${i}].co=this.value;save()"></div>`).join('');
   $('sheetUrl').value=S.sheetUrl||''; $('zoneEdit').value=S.zones.join(', '); $('hdcEdit').value=S.hdc.join('\n');
