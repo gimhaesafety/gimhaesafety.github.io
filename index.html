@@ -417,7 +417,7 @@ const eqTable = d => ((S.equip||{})[d]||[]);
 const eqTotal = d => { const L=eqTable(d); return L.length? L.reduce((a,e)=>a+(+e.n||0),0) : tasksOf(d).filter(t=>t.status!=='작업취소').reduce((a,t)=>a+eqSum(t),0); };
 function eqGroups(L){ const g={}; L.forEach(e=>{ (g[e.t]=g[e.t]||{n:0,sp:[]}); g[e.t].n+=+e.n||0; g[e.t].sp.push(e.spec?e.spec+'×'+e.n:''); }); return Object.entries(g).map(([t,v])=>({t,n:v.n,sp:v.sp.filter(Boolean)})); }
 function renderEqCard(){ const el=$('eqCard'); if(!el) return; let L=eqTable(D); if(!L.length) L=tasksOf(D).filter(t=>t.status!=='작업취소'&&t.eqTxt).flatMap(t=>(t.eq||[]).map(e=>({co:t.co,t:e.t,spec:'',n:+e.n||0})));
-  if(!L.length){ el.innerHTML='<h2 style="font-size:16px;margin:0 0 6px">🚜 오늘 투입장비</h2><div class="note">구글시트 '장비 대수' 칸이 비어 있습니다.</div>'; return; }
+  if(!L.length){ el.innerHTML='<h2 style="font-size:16px;margin:0 0 6px">🚜 오늘 투입장비</h2><div class="note">구글시트 [장비 대수] 칸이 비어 있습니다.</div>'; return; }
   const cos=[...new Set(L.map(e=>e.co||'-'))];
   const row=g=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)"><span><b>'+esc(g.t)+'</b>'+(g.sp.length?' <span class="note">('+esc(g.sp.join(', '))+')</span>':'')+'</span><b>'+g.n+'대</b></div>';
   el.innerHTML='<div class="sec-h" style="margin:0 0 8px"><h2 style="font-size:16px">🚜 오늘 투입장비 <span class="note" style="font-weight:400">구글시트 장비 대수</span></h2><span class="pill">총 '+eqTotal(D)+'대</span></div>'+
