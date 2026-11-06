@@ -457,11 +457,11 @@ function renderDash(){
   const mb=$('mapbox'); mb.querySelectorAll('.pin').forEach(p=>p.remove());
   const zp=S.zonePos||{}, usedZ={};
   const pinsOf=t=> (t.pins&&t.pins.length)? t.pins.map(p=>({...p})) : (t.zones||[]).filter(z=>zp[z]).map(z=>{ const k=(usedZ[z]=(usedZ[z]||0)+1)-1; return {x:zp[z].x+(k%3)*1.6, y:zp[z].y+Math.floor(k/3)*2.2, auto:true}; });
-  T.forEach(t=>pinsOf(t).forEach((p,pi)=>{
+  const lbUsed=[]; T.forEach(t=>pinsOf(t).forEach((p,pi)=>{
     const el=document.createElement('div'); el.className='pin'+((F&&t.co!==F)||t.status==='작업취소'?' dim':'');
     el.style.left=p.x+'%'; el.style.top=p.y+'%';
-    const eqN=eqSum(t), eqL=t.eqTxt?eqShort(t):'', shared=/공용/.test(t.eqTxt||'');
-    el.innerHTML=`<div class="b" style="background:${coColor(t.co)}"><span>${pi===0&&t.eqTxt?(shared?'↔':eqN):(pi===0?t.workers||0:'·')}</span></div>${isHR(t)?'<div class="w">!</div>':''}${pi===0&&t.eqTxt?'<div class="eqlb">'+esc(t.name)+' · '+esc(shared?t.eqTxt:eqL)+'</div>':''}`;
+    const eqN=eqSum(t), eqL=t.eqTxt?eqShort(t):'', shared=/공용/.test(t.eqTxt||''); let lbOff=0; if(pi===0&&t.eqTxt){ lbOff=lbUsed.filter(q=>Math.abs(q.x-p.x)<12&&Math.abs(q.y-p.y)<4).length; lbUsed.push({x:p.x,y:p.y}); }
+    el.innerHTML=`<div class="b" style="background:${coColor(t.co)}"><span>${pi===0&&t.eqTxt?(shared?'↔':eqN):(pi===0?t.workers||0:'·')}</span></div>${isHR(t)?'<div class="w">!</div>':''}${pi===0&&t.eqTxt?'<div class="eqlb" style="top:'+(-2+lbOff*22)+'px">'+esc(t.name)+' · '+esc(shared?t.eqTxt:eqL)+'</div>':''}`;
     el.title=t.name+(t.eqTxt?' / 장비: '+t.eqTxt:''); el.onclick=e=>{e.stopPropagation();showTask(t.id)}; mb.appendChild(el);
   }));
   const MKC={발파:['#e0353a','발'],천공:['#e9891a','천'],정리:['#7a4ed6','정'],터파기:['#7a4ed6','터'],상차:['#2c5be0','상'],소할:['#0aa5b8','소']};
@@ -839,7 +839,7 @@ async function syncSheet(tabName, silent){
     const pool=PIN_GROUPS.map(g=>old.filter(t=>g.test(t.name)).flatMap(t=>t.pins||[]));
     const used=PIN_GROUPS.map(()=>false);
     const nt=list.map(x=>{ const gi=PIN_GROUPS.findIndex(g=>g.test(x.name)); let pins=[]; if(gi>=0&&!used[gi]){ const cand=list.filter(y=>PIN_GROUPS[gi].test(y.name)); const oldZ=old.filter(t=>PIN_GROUPS[gi].test(t.name)).flatMap(t=>t.zones||[]); const best=cand.find(y=>oldZ.some(z=>zl(y.loc).includes(z)))||cand[0]; if(best===x){ pins=pool[gi]; used[gi]=true; } }
-      const locN=zl(x.loc); const zones=S.zones.filter(z=>locN.split(/[,，]/).map(s=>s.trim()).some(s=>s===z||s.startsWith(z+' '))); const eqObjs={}; x.eq.forEach(e=>{ const k=/굴착기|백호|B\/H/.test(e)?'B/H':/천공/.test(e)?'천공기':/덤프/.test(e)?'덤프트럭':/롤러/.test(e)?'진동롤러':/살수/.test(e)?'살수차':/브레이커/.test(e)?'브레이커':/크레인/.test(e)?'크레인':'기타'; eqObjs[k]=(eqObjs[k]||0)+1; }); const cntL=parseEqCnt(x.cnt); if(cntL.length){ for(const k in eqObjs) delete eqObjs[k]; cntL.forEach(e=>{ eqObjs[e.t]=(eqObjs[e.t]||0)+e.n; }); }
+      const locN=zl(x.loc); const zones=S.zones.filter(z=>locN.split(/[,，]/).map(s=>s.trim()).some(s=>s===z||s.startsWith(z+' '))); const eqObjs={}; x.eq.forEach(e=>{ const k=/굴착기|백호|B\/H/.test(e)?'B/H':/천공/.test(e)?'천공기':/덤프/.test(e)?'덤프트럭':/롤러/.test(e)?'진동롤러':/살수/.test(e)?'살수차':/브레이커/.test(e)?'브레이커':/크레인/.test(e)?'크레인':'기타'; eqObjs[k]=(eqObjs[k]||0)+1; }); const cntL=parseEqCnt(x.cnt); if(/공용/.test(x.cnt||'')) for(const k in eqObjs) delete eqObjs[k]; if(cntL.length){ for(const k in eqObjs) delete eqObjs[k]; cntL.forEach(e=>{ eqObjs[e.t]=(eqObjs[e.t]||0)+e.n; }); }
       return {id:uid(),date:D,co:x.co,name:x.name,trade:/발파/.test(x.name)?'발파':/천공/.test(x.name)?'천공':/보강토/.test(x.loc+x.name)?'보강토':/포설|포장/.test(x.name)?'포장':/관로|관부설|흄관|풀륨/.test(x.name)?'배수':'토공',status:'진행중',zones,loc:x.loc,workers:Math.max(1,x.eq.length),start:'07:00',end:'17:00',crew:[],
         eq:Object.entries(eqObjs).map(([t,n])=>({t,n})), detail:x.eq.length?'장비: '+x.eq.join(', '):'', eqTxt:x.cnt||'', hr:x.hr?hrTypes(x.name,x.eq.join(' ')):['해당 없음'], ptw:'', top:x.top?'O':'X', signal:x.eq.length?'':'X', haz:x.haz?'O':'X',
         leader:x.leader, supSub:x.supSub, supHdc:x.supHdc, wb:+x.wb||0, cut:+x.cut||0, hazName:x.hazN||'', safe:'', watch:'', watcher:'', acc:'', excl:'', early:'정규', note:`구글시트 '${name}' 연동${x.wb&&x.wb!=='0'?' / 작업대 '+x.wb:''}${x.cut&&x.cut!=='0'?' / 절단공구 '+x.cut:''}${x.hazN?' / 유해물질 '+x.hazN:''}`, pins }; });
