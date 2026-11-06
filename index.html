@@ -172,6 +172,7 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
         <button class="bigbtn" onclick="exportReport()">📤 일일 고위험 작업 현황 보고문 복사</button>
         <button class="bigbtn g" onclick="exportExcel()">📊 엑셀로 내보내기</button>
         <div class="weather" id="weather">🌤️ 날씨 불러오는 중…</div>
+        <div class="card" style="margin-top:12px" id="eqCard"></div>
         <div class="card" style="margin-top:12px" id="cctvCard">
           <div class="sec-h" style="margin:0 0 10px"><h2 style="font-size:16px">📹 현장 CCTV <span class="note" style="font-weight:400">SiteEye · 5초마다 갱신 · 화면 누르면 1초 갱신</span></h2><button class="btn p" onclick="openCctv()">📺 SiteEye 실시간 ↗</button></div>
           <div id="cctvGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
@@ -409,6 +410,16 @@ const coColor = n => (S.companies.find(c=>c.name===n)||S.companies.find(c=>norm(
 const tasksOf = d => S.tasks.filter(t=>t.date===d);
 const isHR = t => (t.hr||[]).some(h=>h!=='해당 없음');
 const eqSum = t => (t.eq||[]).reduce((a,e)=>a+(+e.n||0),0);
+const eqTable = d => ((S.equip||{})[d]||[]);
+const eqTotal = d => { const L=eqTable(d); return L.length? L.reduce((a,e)=>a+(+e.n||0),0) : tasksOf(d).filter(t=>t.status!=='작업취소').reduce((a,t)=>a+eqSum(t),0); };
+function eqGroups(L){ const g={}; L.forEach(e=>{ (g[e.t]=g[e.t]||{n:0,sp:[]}); g[e.t].n+=+e.n||0; g[e.t].sp.push(e.spec?e.spec+'×'+e.n:''); }); return Object.entries(g).map(([t,v])=>({t,n:v.n,sp:v.sp.filter(Boolean)})); }
+function renderEqCard(){ const el=$('eqCard'); if(!el) return; const L=eqTable(D);
+  if(!L.length){ el.innerHTML='<h2 style="font-size:16px;margin:0 0 6px">🚜 오늘 투입장비</h2><div class="note">구글시트 날짜 탭에 투입장비 표가 없습니다.</div>'; return; }
+  const cos=[...new Set(L.map(e=>e.co||'-'))];
+  const row=g=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)"><span><b>'+esc(g.t)+'</b>'+(g.sp.length?' <span class="note">('+esc(g.sp.join(', '))+')</span>':'')+'</span><b>'+g.n+'대</b></div>';
+  el.innerHTML='<div class="sec-h" style="margin:0 0 8px"><h2 style="font-size:16px">🚜 오늘 투입장비 <span class="note" style="font-weight:400">구글시트 투입장비 표</span></h2><span class="pill">총 '+eqTotal(D)+'대</span></div>'+
+    cos.map(c=>(cos.length>1||c!=='-'?'<div style="margin-top:6px;font-weight:700;color:'+coColor(c)+'">'+esc(c)+' · '+L.filter(e=>(e.co||'-')===c).reduce((a,e)=>a+(+e.n||0),0)+'대</div>':'')+eqGroups(L.filter(e=>(e.co||'-')===c)).map(row).join('')).join('');
+}
 
 /* ===================== WORKERS ===================== */
 function age(b, ref){ if(!b) return null; const x=new Date(b), r=new Date(ref); if(isNaN(x)) return null; let a=r.getFullYear()-x.getFullYear(); if(r.getMonth()<x.getMonth()||(r.getMonth()===x.getMonth()&&r.getDate()<x.getDate())) a--; return a; }
@@ -453,7 +464,7 @@ function renderDash(){
   mb.querySelectorAll('.mark').forEach(p=>p.remove()); mb.classList.toggle('showlb', !!($('mkLb')&&$('mkLb').checked));
   const md=(S.marks||{})[D];
   if(md && (!$('mkOn')||$('mkOn').checked)) md.marks.forEach(m=>{ const c=MKC[m.k]||['#555','●']; const el=document.createElement('div'); el.className='mark'; el.style.left=m.x+'%'; el.style.top=m.y+'%'; el.title=m.t; el.innerHTML=`<div class="d" style="background:${c[0]}">${c[1]}</div>${m.dup?'':'<div class="lb">'+esc(m.t)+'</div>'}`; el.onclick=e=>{e.stopPropagation(); toast(m.t+' (평면도 PDF '+md.src+')');}; mb.appendChild(el); });
-  $('mapCnt').textContent=`작업 ${T.length} · 장비 ${act.reduce((a,t)=>a+eqSum(t),0)}대${md?' · PDF 표시 '+md.marks.filter(m=>!m.dup).length:''}`;
+  $('mapCnt').textContent=`작업 ${T.length} · 장비 ${eqTotal(D)}대${md?' · PDF 표시 '+md.marks.filter(m=>!m.dup).length:''}`;
   $('legend').innerHTML=S.companies.map(c=>`<span><i style="background:${c.color}"></i>${esc(c.name)}</span>`).join('') + ((S.marks||{})[D]? '<span style="flex-basis:100%;height:0"></span><span class="note">PDF 장비위치('+esc(S.marks[D].src)+'):</span>'+[['#e0353a','발파'],['#e9891a','천공'],['#2c5be0','상차/반출'],['#0aa5b8','소할'],['#7a4ed6','정리·터파기']].map(([c,n])=>`<span><i style="background:${c}"></i>${n}</span>`).join('') : '');
   // KPIs
   const w=workers(D), vul=vulOf(D);
@@ -540,7 +551,7 @@ function exportReport(){
   const T=tasksOf(D).filter(t=>t.status!=='작업취소'), vul=vulOf(D), hrT=T.filter(isHR);
   const dw='일월화수목금토'[new Date(D).getDay()];
   const txt=`[${D}(${dw}) 김해 사이언스파크 일일 고위험 작업 현황]
-■ 총 출역 ${attOf(D).length}명 / 작업 ${T.length}건 (고위험 ${hrT.length}건, 작업인원 ${hrT.reduce((a,t)=>a+(+t.workers||0),0)}명) / 장비 ${T.reduce((a,t)=>a+eqSum(t),0)}대
+■ 총 출역 ${attOf(D).length}명 / 작업 ${T.length}건 (고위험 ${hrT.length}건, 작업인원 ${hrT.reduce((a,t)=>a+(+t.workers||0),0)}명) / 장비 ${eqTotal(D)}대${eqTable(D).length?' ('+eqGroups(eqTable(D)).map(g=>g.t+' '+g.n).join(', ')+')':''}
 ■ 취약근로자 ${vul.length}명${vul.length?': '+vul.map(v=>`${v.n}(${(v.j||'').replace(/\[.*?\]/,'')}, ${v.f.map(f=>f[1]).join('/')})`).join(', '):''}
 ■ 작업 목록
 ${T.map((t,i)=>`${i+1}. [${t.co}] ${t.name} - ${(t.zones||[]).join(',')} / ${t.workers||0}명 / ${(t.eq||[]).map(e=>e.t+' '+e.n+'대').join(', ')||'장비없음'}${isHR(t)?' ⚠'+t.hr.filter(h=>h!=='해당 없음').join(','):''} / 전담자 ${t.watch==='O'?(t.watcher||'배치'):'미배치'}`).join('\n')}
@@ -814,6 +825,9 @@ async function syncSheet(tabName, silent){
     rows.slice(h+1).forEach(r=>{ if(r[iC]&&r[iC].trim()) co=r[iC].trim(); const w=(r[iW]||'').trim(); if(!w) return;
       const eqs=(r[iE]||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean); const hr=/true/i.test(r[iHR]||'');
       list.push({ co, loc:(r[iL]||'').trim(), name:w, eq:eqs, hr, top:/true/i.test(r[iTop]||''), haz:/true/i.test(r[iHz]||''), hazN:r[iHzN]||'', wb:r[iWb]||'', cut:r[iCut]||'', leader:r[iLd]||'', supSub:r[iSs]||'', supHdc:r[iSh]||'' }); });
+    const iEqN=H.findIndex(c=>c==='장비명'); const eqList=[];
+    if(iEqN>0){ let eco=''; rows.slice(h+1).forEach(r=>{ const nm=(r[iEqN]||'').trim(), c0=(r[iEqN-1]||'').trim(); if(c0) eco=c0; if(!nm||/^합계/.test(nm)) return; const n=+String(r[iEqN+2]||'').replace(/[^\d.]/g,'')||0; if(!n) return; eqList.push({co:eco,t:nm,spec:(r[iEqN+1]||'').trim(),n}); }); }
+    (S.equip=S.equip||{})[D]=eqList;
     if(!list.length){ if(silent) return 'empty'; return alert('작업 행이 없습니다'); }
     const old=tasksOf(D);
     if(!silent && !confirm(`'${name}' 탭에서 작업 ${list.length}건을 찾았습니다 (고위험 ${list.filter(x=>x.hr).length}, 상등급 ${list.filter(x=>x.top).length}).\n${D} 기존 작업 ${old.length}건을 시트 내용으로 교체할까요?\n(기존 작업의 지도 핀은 같은 종류 작업에 옮겨 붙입니다)`)) return;
@@ -826,7 +840,7 @@ async function syncSheet(tabName, silent){
         eq:Object.entries(eqObjs).map(([t,n])=>({t,n})), detail:x.eq.length?'장비: '+x.eq.join(', '):'', hr:x.hr?hrTypes(x.name,x.eq.join(' ')):['해당 없음'], ptw:'', top:x.top?'O':'X', signal:x.eq.length?'':'X', haz:x.haz?'O':'X',
         leader:x.leader, supSub:x.supSub, supHdc:x.supHdc, wb:+x.wb||0, cut:+x.cut||0, hazName:x.hazN||'', safe:'', watch:'', watcher:'', acc:'', excl:'', early:'정규', note:`구글시트 '${name}' 연동${x.wb&&x.wb!=='0'?' / 작업대 '+x.wb:''}${x.cut&&x.cut!=='0'?' / 절단공구 '+x.cut:''}${x.hazN?' / 유해물질 '+x.hazN:''}`, pins }; });
     nt.forEach(t=>{ t.src='sheet'; const prev=old.find(o=>o.name===t.name&&o.loc===t.loc); if(prev){ ['status','watch','watcher','ptw','safe','crew','workers','start','end','early','acc','excl','detail','wb','cut','haz'].forEach(k=>{ if(prev[k]!==undefined&&prev[k]!==''&&!(Array.isArray(prev[k])&&!prev[k].length)) t[k]=prev[k]; }); if(prev.pins&&prev.pins.length) t.pins=prev.pins; } const ex=S.companies.find(c=>norm(c.name)===norm(t.co)); if(ex) t.co=ex.name; if(!ex) S.companies.push({name:t.co,color:['#2c5be0','#e0353a','#1f9d55','#e9891a','#7a4ed6','#0aa5b8','#c2185b'][S.companies.length%7]}); });
-    const sig=JSON.stringify(list); if(silent && S.sheetSig && S.sheetSig[D]===sig) return 'same';
+    const sig=JSON.stringify([list,eqList]); if(silent && S.sheetSig && S.sheetSig[D]===sig) return 'same';
     (S.sheetSig=S.sheetSig||{})[D]=sig;
     S.tasks=S.tasks.filter(t=>t.date!==D).concat(nt); applyHighRisk(D); save(); renderAll(); if(!silent) go('dash'); toast(`구글시트 '${name}' ${nt.length}건 ${silent?'자동 ':''}반영`); return 'ok';
   }catch(e){ if(silent) return 'err'; alert('구글시트 불러오기 실패: '+e.message); }
@@ -860,7 +874,7 @@ function go(v){ document.querySelectorAll('.view').forEach(x=>x.classList.toggle
 document.querySelectorAll('nav.bottom button').forEach(b=>b.onclick=()=>{ if(b.dataset.v==='reg') editId=null; go(b.dataset.v); });
 function shiftDate(n){ if(n===0) D=todayStr(); else { const d=new Date(D); d.setDate(d.getDate()+n); D=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } $('date').value=D; renderAll(); autoSync(); }
 $('date').onchange=()=>{ D=$('date').value; renderAll(); autoSync(); };
-function renderAll(){ applyHighRisk(D); $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
+function renderAll(){ applyHighRisk(D); $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderEqCard(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
 async function loadHR(){ try{ const r=await fetch('hirisk.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.hirisk=j.days||{}; S.topchk=j.topchk||{}; S.hiriskAt=j.updated||''; applyHighRisk(D); renderAll(); }catch(e){} }
 function hrZones(loc){ const out=[]; const m=String(loc).match(/보강토\s*([\d,\s]+)호/); if(m) m[1].split(/[,\s]+/).filter(Boolean).forEach(n=>out.push('보강토'+n+'호')); const locN=zl(loc); S.zones.forEach(z=>{ if(locN.split(/[,，]/).map(s=>s.trim()).some(s=>s===z||s.startsWith(z+' '))) out.push(z); }); return [...new Set(out)]; }
 function applyHighRisk(d){
