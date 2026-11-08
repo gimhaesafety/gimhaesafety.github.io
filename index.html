@@ -413,6 +413,10 @@ const isHR = t => (t.hr||[]).some(h=>h!=='해당 없음');
 const eqSum = t => (t.eq||[]).reduce((a,e)=>a+(+e.n||0),0);
 function parseEqCnt(s){ return String(s||'').split(/[,，\/]/).map(p=>p.trim().match(/^(.+?)\s*(\d+)\s*대?$/)).filter(Boolean).map(m=>({t:m[1].trim(),n:+m[2]})); }
 const eqShort = t => (t.eq||[]).filter(e=>+e.n).map(e=>e.t.replace('덤프트럭','덤프').replace('B/H','굴착기')+e.n).join(' ');
+let LOC_POS = {"강체식 3호 옹벽":{"x":46.54,"y":17.07}};
+const nz = s => String(s||'').replace(/\s/g,'');
+function locPins(t){ const L=nz(t.loc); return Object.entries(LOC_POS).filter(([k])=>L.includes(nz(k))).map(([k,v])=>({x:v.x,y:v.y,auto:true})); }
+async function loadLocPos(){ try{ const r=await fetch('locpos.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); if(j&&j.pos){ LOC_POS=j.pos; renderAll(); } }catch(e){} }
 const eqTable = d => ((S.equip||{})[d]||[]);
 const eqTotal = d => { const L=eqTable(d); return L.length? L.reduce((a,e)=>a+(+e.n||0),0) : tasksOf(d).filter(t=>t.status!=='작업취소').reduce((a,t)=>a+eqSum(t),0); };
 function eqGroups(L){ const g={}; L.forEach(e=>{ (g[e.t]=g[e.t]||{n:0,sp:[]}); g[e.t].n+=+e.n||0; g[e.t].sp.push(e.spec?e.spec+'×'+e.n:''); }); return Object.entries(g).map(([t,v])=>({t,n:v.n,sp:v.sp.filter(Boolean)})); }
@@ -456,7 +460,7 @@ function renderDash(){
   // map pins
   const mb=$('mapbox'); mb.querySelectorAll('.pin').forEach(p=>p.remove());
   const zp=S.zonePos||{}, usedZ={};
-  const pinsOf=t=> (t.pins&&t.pins.length)? t.pins.map(p=>({...p})) : (t.zones||[]).filter(z=>zp[z]).map(z=>{ const k=(usedZ[z]=(usedZ[z]||0)+1)-1; return {x:zp[z].x+(k%3)*1.6, y:zp[z].y+Math.floor(k/3)*2.2, auto:true}; });
+  const pinsOf=t=> (t.pins&&t.pins.length)? t.pins.map(p=>({...p})) : locPins(t).concat((t.zones||[]).filter(z=>zp[z]).map(z=>{ const k=(usedZ[z]=(usedZ[z]||0)+1)-1; return {x:zp[z].x+(k%3)*1.6, y:zp[z].y+Math.floor(k/3)*2.2, auto:true}; }));
   const lbUsed=[]; T.forEach(t=>pinsOf(t).forEach((p,pi)=>{
     const el=document.createElement('div'); el.className='pin'+((F&&t.co!==F)||t.status==='작업취소'?' dim':'');
     el.style.left=p.x+'%'; el.style.top=p.y+'%';
@@ -485,7 +489,7 @@ function renderDash(){
   const vulHR=hrT.filter(t=>(t.crew||[]).some(n=>vulNames.has(n))); if(vulHR.length) ck.push(['r',`👴 고위험 작업에 취약근로자 투입 ${vulHR.length}건`, vulHR]);
   const vulEq=vul.filter(v=>/장비운전원|화약/.test(v.j||'')); if(vulEq.length) ck.push(['',`🦺 장비·화약 직종 취약근로자 ${vulEq.length}명: ${vulEq.map(v=>v.n).join(', ')}`, null]);
   if(S.hirisk && !S.hirisk[D]) ck.push(['',`🔎 i-safety 일일고위험작업에 ${D} 등록 내역이 없습니다 (고위험 0건으로 표시)`, null]);
-  const noPin=act.filter(t=>!(t.pins||[]).length && !(t.zones||[]).some(z=>(S.zonePos||{})[z])); if(noPin.length) ck.push(['',`📍 위치 미지정 작업 ${noPin.length}건`, noPin]);
+  const noPin=act.filter(t=>!(t.pins||[]).length && !(t.zones||[]).some(z=>(S.zonePos||{})[z]) && !locPins(t).length); if(noPin.length) ck.push(['',`📍 위치 미지정 작업 ${noPin.length}건`, noPin]);
   window._ck=ck;
   $('chk').innerHTML = ck.length? '<h4>⚠️ 확인이 필요한 항목</h4>'+ck.map((c,i)=>`<button class="${c[0]}" onclick="showCk(${i})"><span>${esc(c[1])}</span><span>›</span></button>`).join('') : '<h4>✅ 확인이 필요한 항목 없음</h4>';
   // list
@@ -901,7 +905,7 @@ function applyHighRisk(d){
 }
 async function loadMarks(){ try{ const r=await fetch('planmarks.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.marks=j.days||{}; renderDash(); }catch(e){} }
 async function loadAttJson(){ try{ const r=await fetch('att.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); let n=0; for(const [d,v] of Object.entries(j.days||{})){ if((S.attSrc||{})[d] && !/자동/.test(S.attSrc[d]) && !/Gateware 일일 출역 \(11\/5/.test(S.attSrc[d])) continue; S.att[d]=v.rows; (S.attSrc=S.attSrc||{})[d]='Gateware 자동 ('+v.at+' 기준, 이름 일부 가림)'; n++; } if(n){ save(); renderAll(); } }catch(e){} }
-$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); loadMarks(); loadHR(); renderCctv();
+$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); loadMarks(); loadLocPos(); loadHR(); renderCctv();
 setInterval(loadHR, 10*60*1000);
 setInterval(loadMarks, 10*60*1000);
 setInterval(loadAttJson, 10*60*1000);
