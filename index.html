@@ -885,13 +885,21 @@ $('date').onchange=()=>{ D=$('date').value; renderAll(); autoSync(); };
 function renderAll(){ applyHighRisk(D); $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderEqCard(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
 async function loadHR(){ try{ const r=await fetch('hirisk.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.hirisk=j.days||{}; S.topchk=j.topchk||{}; S.hiriskAt=j.updated||''; applyHighRisk(D); renderAll(); }catch(e){} }
 function hrZones(loc){ const out=[]; const m=String(loc).match(/보강토\s*([\d,\s]+)호/); if(m) m[1].split(/[,\s]+/).filter(Boolean).forEach(n=>out.push('보강토'+n+'호')); const locN=zl(loc); S.zones.forEach(z=>{ if(locN.split(/[,，]/).map(s=>s.trim()).some(s=>s===z||s.startsWith(z+' '))) out.push(z); }); return [...new Set(out)]; }
+// 상등급 점검 항목(작업명) -> 시트 작업 연결 규칙. 발파자리 정리는 발파 상등급 아님, 덤프 운반·하역 상등급은 성토 작업.
+function topMatch(it,t){ const w=(it.work||'')+' '+(it.trade||''); const n=t.name||'';
+  if(/발파|장약/.test(it.work||'')) return /발파|장약|천공/.test(n) && !/발파\s*자리|자리\s*정리/.test(n);
+  if(/운반|하역|덤프/.test(it.work||'')) return /성토/.test(n);
+  if(/아스콘|포장|롤러/.test(w)) return /아스콘|포장/.test(n);
+  if(/블럭/.test(it.work||'')) return /블럭/.test(n);
+  if(/뒷채움|다짐/.test(it.work||'')) return /뒷채움|다짐/.test(n);
+  return (it.work||'').split(/[\s,·및]+/).filter(k=>k.length>=2 && !/작업/.test(k)).some(k=>n.includes(k)); }
 function applyHighRisk(d){
   if(!S.hirisk) return;
   S.tasks = S.tasks.filter(t=>!(t.date===d && t.src==='isafety'));
   const T = S.tasks.filter(t=>t.date===d);
   T.forEach(t=>{ if(!t._hrOrig) t._hrOrig=t.hr; t.hr=['해당 없음']; t.hrSrc=''; t.top='X'; t.topInfo=null; });
   const tc=(S.topchk||{})[d];
-  if(tc && tc.items) tc.items.forEach(it=>{ if(/작업없음/.test(it.result||'')) return; const kw=['발파','장약','천공','보강토','블럭','아스콘','포장','굴착','되메우기','터파기','상차','성토','다짐','운반','덤프','롤러']; const src=(it.trade+' '+it.work+' '+it.risk+' '+it.loc); const ks=kw.filter(k=>src.includes(k)); const hit=T.filter(t=>norm(t.co)===norm(it.co) && (ks.some(k=>(t.name+' '+t.loc).includes(k)) || (t.zones||[]).some(z=>hrZones(it.loc).includes(z)))); hit.forEach(t=>{ t.top='O'; (t.topInfo=t.topInfo||[]).push(it.work+' : '+it.risk); }); it._matched=hit.length; });
+  if(tc && tc.items) tc.items.forEach(it=>{ if(/작업없음/.test(it.result||'')) return; const hit=T.filter(t=>norm(t.co)===norm(it.co) && topMatch(it,t)); hit.forEach(t=>{ t.top='O'; (t.topInfo=t.topInfo||[]).push(it.work+' : '+it.risk); }); it._matched=hit.length; });
   const list = S.hirisk[d];
   if(!list) return;
   list.forEach((h,i)=>{
