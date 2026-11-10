@@ -103,7 +103,7 @@ select,input,textarea{font-family:inherit;font-size:14px}
 .tag{display:inline-block;font-size:12px;border-radius:7px;padding:2px 8px;margin:2px 4px 2px 0;font-weight:600}
 .tag.hr{background:#fde4e4;color:var(--red)}.tag.eq{background:#e8eefc;color:var(--blue)}.tag.v{background:#f1e9fd;color:var(--purple)}.tag.top{background:#fdf0de;color:#b86800}
 .chip{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;margin-right:3px;font-weight:700}
-.c-old{background:#fde5e4;color:var(--red)}.c-semi{background:#fff1dc;color:#b86800}.c-for{background:#ede5fb;color:var(--purple)}.c-new{background:#e1ecfb;color:var(--blue)}.c-young{background:#e3f6ea;color:var(--green)}.c-staff{background:#eef0f3;color:#555}
+.c-old{background:#fde5e4;color:var(--red)}.c-hbp{background:#ffe3ef;color:#c2185b}.c-chk{background:#fff4d6;color:#9a6a00}.c-isf{background:#ede5fb;color:var(--purple)}.c-semi{background:#fff1dc;color:#b86800}.c-for{background:#ede5fb;color:var(--purple)}.c-new{background:#e1ecfb;color:var(--blue)}.c-young{background:#e3f6ea;color:var(--green)}.c-staff{background:#eef0f3;color:#555}
 nav.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 0 10px;z-index:20}
 nav.bottom button{background:none;border:0;font-family:inherit;font-size:12px;color:#555;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:70px}
 nav.bottom button .ic{font-size:19px;width:52px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center}
@@ -444,10 +444,16 @@ function workers(d){
     if(ag!=null&&ag<c.young) f.push(['young','미성년']);
     if(r.nat&&r.nat!=='대한민국') f.push(['for','외국인('+r.nat+')']);
     if(r.r){ const dd=Math.floor((new Date(d)-new Date(r.r))/864e5); if(dd>=0&&dd<=c.newD) f.push(['new','신규 '+dd+'일차']); }
-    return {...a, b:r.b||'', nat:r.nat||'', emp:r.e||'', reg:r.r||'', age:ag, staff, f, matched:!!r.n};
+    const isf=isfOf(d).find(e=>norm(e.c)===norm(a.c) && e.n===a.n && (e.age==null||ag==null||Math.abs(e.age-ag)<=1));
+    if(isf) isf.kinds.forEach(q=>{ if(q==='고령자' && f.some(x=>x[0]==='old')) { f.find(x=>x[0]==='old')[1]+=' · i-safety 고령자'; return; } f.push(isfFlag(q)); });
+    return {...a, b:r.b||'', nat:r.nat||'', emp:r.e||'', reg:r.r||'', age:ag, staff, f, matched:!!r.n, _isf:isf||null};
   });
 }
-function vulOf(d){ const w=workers(d); return (S.crit.ex? w.filter(x=>!x.staff):w).filter(x=>x.f.length); }
+// i-safety 현장별 출역현황 취약근로자(고혈압·고령자·검진유소견자 등). hirisk.json의 weak[날짜].list
+function isfOf(d){ return (((S.weak||{})[d]||{}).list)||[]; }
+function isfFlag(q){ return [q==='고혈압'?'hbp':q==='고령자'?'old':q==='검진유소견자'?'chk':q==='외국인'?'for':'isf', q+' (i-safety)']; }
+function isfExtra(d,w){ const used=new Set(w.map(x=>x._isf).filter(Boolean)); return isfOf(d).filter(e=>!used.has(e)).map(e=>({c:e.c,n:e.n,t:'',j:'(Gateware 출역 명단에 없음)',in:e.in||'',out:'',age:e.age,b:'',nat:'',reg:'',staff:false,matched:false,isfOnly:true,f:e.kinds.map(isfFlag)})); }
+function vulOf(d){ const w=workers(d); return (S.crit.ex? w.filter(x=>!x.staff):w).filter(x=>x.f.length).concat(isfExtra(d,w)); }
 
 /* ===================== DASHBOARD ===================== */
 function renderDash(){
@@ -487,6 +493,7 @@ function renderDash(){
   const noPtw=hrT.filter(t=>t.ptw!=='O'); if(noPtw.length) ck.push(['r',`📝 고위험 작업 작업계획서/PTW 미확인 ${noPtw.length}건`, noPtw]);
   const vulNames=new Set(vul.map(v=>v.n));
   const vulHR=hrT.filter(t=>(t.crew||[]).some(n=>vulNames.has(n))); if(vulHR.length) ck.push(['r',`👴 고위험 작업에 취약근로자 투입 ${vulHR.length}건`, vulHR]);
+  { const L=isfOf(D); if(L.length){ const m={}; L.forEach(e=>e.kinds.forEach(q=>m[q]=(m[q]||0)+1)); ck.push(['',`🩺 i-safety 취약근로자 ${L.length}명 (${Object.entries(m).map(([a,b])=>a+' '+b).join(', ')}) · 현장별 출역현황 기준`, null]); } }
   const vulEq=vul.filter(v=>/장비운전원|화약/.test(v.j||'')); if(vulEq.length) ck.push(['',`🦺 장비·화약 직종 취약근로자 ${vulEq.length}명: ${vulEq.map(v=>v.n).join(', ')}`, null]);
   if(S.hirisk && !S.hirisk[D]) ck.push(['',`🔎 i-safety 일일고위험작업에 ${D} 등록 내역이 없습니다 (고위험 0건으로 표시)`, null]);
   const noPin=act.filter(t=>!(t.pins||[]).length && !(t.zones||[]).some(z=>(S.zonePos||{})[z]) && !locPins(t).length); if(noPin.length) ck.push(['',`📍 위치 미지정 작업 ${noPin.length}건`, noPin]);
@@ -734,12 +741,12 @@ function saveZoneCheck(){ const n=(S.checkItems||DEF_CHECK).length; const done=O
 function bars(el,m){ const e=Object.entries(m).sort((a,b)=>b[1]-a[1]), mx=Math.max(1,...e.map(x=>x[1])); $(el).innerHTML=e.map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px"><div style="width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(k)}">${esc(k)}</div><div style="flex:1;background:#eef1f6;border-radius:4px;height:14px"><div style="width:${v/mx*100}%;height:100%;background:var(--blue);border-radius:4px"></div></div><b style="width:30px;text-align:right">${v}</b></div>`).join('')||'<div class="note">데이터 없음</div>'; }
 function renderWk(){
   const c=S.crit; $('c_old').value=c.old; $('c_semi').value=c.semi; $('c_new').value=c.newD; $('c_young').value=c.young; $('c_ex').checked=c.ex;
-  const w=workers(D), pool=c.ex?w.filter(x=>!x.staff):w, vul=pool.filter(x=>x.f.length);
+  const w=workers(D), pool=c.ex?w.filter(x=>!x.staff):w, vul=pool.filter(x=>x.f.length).concat(isfExtra(D,w));
   const cnt=k=>pool.filter(x=>x.f.some(f=>f[0]===k)).length;
   const ages=pool.map(x=>x.age).filter(x=>x!=null);
   $('wkSrc').textContent = S.attSrc?.[D] || (w.length?'':'출역 데이터 없음');
   const k=(v,l,cls)=>`<div class="kpi ${cls||''}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
-  $('wkKpis').innerHTML=k(w.length,'총 출역')+k(pool.length,c.ex?'근로자(직원 제외)':'집계 대상')+k(vul.length,'취약근로자','pur')+k(cnt('old'),`고령 ${c.old}+`,'red')+k(cnt('semi'),`준고령 ${c.semi}~${c.old-1}`,'org')+k(cnt('for')+' / '+cnt('new'),'외국인 / 신규');
+  $('wkKpis').innerHTML=k(w.length,'총 출역')+k(pool.length,c.ex?'근로자(직원 제외)':'집계 대상')+k(vul.length,'취약근로자','pur')+k(cnt('old'),`고령 ${c.old}+`,'red')+k(cnt('semi'),`준고령 ${c.semi}~${c.old-1}`,'org')+k(cnt('for')+' / '+cnt('new'),'외국인 / 신규')+k(isfOf(D).length,'i-safety 취약<br>'+(()=>{ const m={}; isfOf(D).forEach(e=>e.kinds.forEach(q=>m[q]=(m[q]||0)+1)); return Object.entries(m).map(([a,b])=>a+' '+b).join(' · ')||'데이터 없음'; })(),'pur');
   $('vulCnt').textContent=vul.length+'명 · 평균연령 '+(ages.length?(ages.reduce((a,b)=>a+b,0)/ages.length).toFixed(1):'-')+'세';
   const tk=n=>tasksOf(D).filter(t=>(t.crew||[]).includes(n)).map(t=>t.name).join(', ');
   $('vulTbl').innerHTML='<tr><th>구분</th><th>이름</th><th>나이</th><th>업체</th><th>직종</th><th>투입 작업</th><th>출근</th></tr>'+vul.sort((a,b)=>(b.age||0)-(a.age||0)).map(x=>`<tr><td>${x.f.map(f=>`<span class="chip c-${f[0]}">${esc(f[1])}</span>`).join('')}</td><td><b>${esc(x.n)}</b></td><td>${x.age??'-'}</td><td>${esc(x.c)}</td><td>${esc(x.j)}</td><td>${esc(tk(x.n))||'<span class="note">미지정</span>'}</td><td>${esc((x.in||'').slice(0,5))}</td></tr>`).join('')+(vul.length?'':'<tr><td colspan="7" class="note">해당 없음</td></tr>');
@@ -883,7 +890,7 @@ document.querySelectorAll('nav.bottom button').forEach(b=>b.onclick=()=>{ if(b.d
 function shiftDate(n){ if(n===0) D=todayStr(); else { const d=new Date(D); d.setDate(d.getDate()+n); D=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } $('date').value=D; renderAll(); autoSync(); }
 $('date').onchange=()=>{ D=$('date').value; renderAll(); autoSync(); };
 function renderAll(){ applyHighRisk(D); $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderEqCard(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
-async function loadHR(){ try{ const r=await fetch('hirisk.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.hirisk=j.days||{}; S.topchk=j.topchk||{}; S.hiriskAt=j.updated||''; applyHighRisk(D); renderAll(); }catch(e){} }
+async function loadHR(){ try{ const r=await fetch('hirisk.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.hirisk=j.days||{}; S.topchk=j.topchk||{}; S.weak=j.weak||{}; S.hiriskAt=j.updated||''; applyHighRisk(D); renderAll(); }catch(e){} }
 function hrZones(loc){ const out=[]; const m=String(loc).match(/보강토\s*([\d,\s]+)호/); if(m) m[1].split(/[,\s]+/).filter(Boolean).forEach(n=>out.push('보강토'+n+'호')); const locN=zl(loc); S.zones.forEach(z=>{ if(locN.split(/[,，]/).map(s=>s.trim()).some(s=>s===z||s.startsWith(z+' '))) out.push(z); }); return [...new Set(out)]; }
 // 상등급 점검 항목(작업명) -> 시트 작업 연결 규칙. 발파자리 정리는 발파 상등급 아님, 덤프 운반·하역 상등급은 성토 작업.
 function topMatch(it,t){ const w=(it.work||'')+' '+(it.trade||''); const n=t.name||'';
