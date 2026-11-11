@@ -177,7 +177,6 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
   <section class="view on" id="v-dash">
     <div class="dash">
       <div>
-        <div id="hrCard" class="hrcard"></div>
         <div class="sec-h"><h2>현장 배치 및 작업 위치</h2><span class="pill">핀을 눌러 상세 확인</span></div>
         <div class="card mapcard">
           <div class="mh"><b>현장 평면도 (26.10)</b><span><label class="note" style="margin-right:10px"><input type="checkbox" id="mkOn" checked onchange="renderDash()"> PDF 장비위치</label><label class="note" style="margin-right:10px"><input type="checkbox" id="mkLb" onchange="renderDash()"> 이름표</label><span id="mapCnt"></span></span></div>
@@ -198,6 +197,7 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
         </div>
       </div>
       <div>
+        <div id="hrCard" class="hrcard"></div>
         <div class="sec-h"><h2>주요 작업 목록</h2><span><span class="pill" id="syncInfo" style="margin-right:6px">구글시트 확인 중…</span><button class="btn" onclick="_autoDone[D]=0;S.sheetSig&&delete S.sheetSig[D];syncSheet(null,true).then(r=>{ $('syncInfo').textContent= r==='notab'?'구글시트에 이 날짜 탭이 없습니다':'구글시트 연동됨'; })">↻ 시트 새로고침</button> <span class="pill" id="taskCnt"></span></span></div>
         <select class="sel" id="coFilter" onchange="renderDash()"></select>
         <div id="taskList"></div>
