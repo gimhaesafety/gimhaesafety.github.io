@@ -416,7 +416,7 @@ const eqShort = t => (t.eq||[]).filter(e=>+e.n).map(e=>e.t.replace('덤프트럭
 let LOC_POS = {"강체식 3호 옹벽":{"x":46.54,"y":17.07}};
 const nz = s => String(s||'').replace(/\s/g,'');
 function locPins(t){ const L=nz(t.loc); return Object.entries(LOC_POS).filter(([k])=>L.includes(nz(k))).map(([k,v])=>({x:v.x,y:v.y,auto:true})); }
-async function loadLocPos(){ try{ const r=await fetch('locpos.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); if(j&&j.pos){ LOC_POS=j.pos; renderAll(); } }catch(e){} }
+async function loadLocPos(){ try{ const j=await fetchData('locpos.json'); if(j&&j.pos){ LOC_POS=j.pos; renderAll(); } }catch(e){} }
 const eqTable = d => ((S.equip||{})[d]||[]);
 const eqTotal = d => { const L=eqTable(d); return L.length? L.reduce((a,e)=>a+(+e.n||0),0) : tasksOf(d).filter(t=>t.status!=='작업취소').reduce((a,t)=>a+eqSum(t),0); };
 function eqGroups(L){ const g={}; L.forEach(e=>{ (g[e.t]=g[e.t]||{n:0,sp:[]}); g[e.t].n+=+e.n||0; g[e.t].sp.push(e.spec?e.spec+'×'+e.n:''); }); return Object.entries(g).map(([t,v])=>({t,n:v.n,sp:v.sp.filter(Boolean)})); }
