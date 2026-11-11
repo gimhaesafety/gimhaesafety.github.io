@@ -890,7 +890,9 @@ document.querySelectorAll('nav.bottom button').forEach(b=>b.onclick=()=>{ if(b.d
 function shiftDate(n){ if(n===0) D=todayStr(); else { const d=new Date(D); d.setDate(d.getDate()+n); D=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); } $('date').value=D; renderAll(); autoSync(); }
 $('date').onchange=()=>{ D=$('date').value; renderAll(); autoSync(); };
 function renderAll(){ applyHighRisk(D); $('mapimg').src=S.map; $('dow').textContent='('+'일월화수목금토'[new Date(D).getDay()]+')'; renderDash(); renderEqCard(); renderStatus(); renderZone(); renderWk(); renderAdmin(); }
-async function loadHR(){ try{ const r=await fetch('hirisk.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.hirisk=j.days||{}; S.topchk=j.topchk||{}; S.weak=j.weak||{}; S.hiriskAt=j.updated||''; applyHighRisk(D); renderAll(); }catch(e){} }
+const RAW='https://raw.githubusercontent.com/gimhaesafety/gimhaesafety.github.io/main/';
+async function fetchData(f){ const a=[RAW+f+'?t='+Date.now(), f+'?t='+Date.now()]; let best=null; for(const u of a){ try{ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) continue; const j=await r.json(); if(!best || String(j.updated||'')>String(best.updated||'')) best=j; }catch(e){} } return best; }
+async function loadHR(){ try{ const j=await fetchData('hirisk.json'); if(!j) return; S.hirisk=j.days||{}; S.topchk=j.topchk||{}; S.weak=j.weak||{}; S.hiriskAt=j.updated||''; applyHighRisk(D); renderAll(); }catch(e){} }
 function hrZones(loc){ const out=[]; const m=String(loc).match(/보강토\s*([\d,\s]+)호/); if(m) m[1].split(/[,\s]+/).filter(Boolean).forEach(n=>out.push('보강토'+n+'호')); const locN=zl(loc); S.zones.forEach(z=>{ if(locN.split(/[,，]/).map(s=>s.trim()).some(s=>s===z||s.startsWith(z+' '))) out.push(z); }); return [...new Set(out)]; }
 // 상등급 점검 항목(작업명) -> 시트 작업 연결 규칙. 발파자리 정리는 발파 상등급 아님, 덤프 운반·하역 상등급은 성토 작업.
 function topMatch(it,t){ const w=(it.work||'')+' '+(it.trade||''); const n=t.name||'';
@@ -919,7 +921,7 @@ function applyHighRisk(d){
   });
 }
 async function loadMarks(){ try{ const r=await fetch('planmarks.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.marks=j.days||{}; renderDash(); }catch(e){} }
-async function loadAttJson(){ try{ const r=await fetch('att.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); let n=0; for(const [d,v] of Object.entries(j.days||{})){ if((S.attSrc||{})[d] && !/자동/.test(S.attSrc[d]) && !/Gateware 일일 출역 \(11\/5/.test(S.attSrc[d])) continue; S.att[d]=v.rows; (S.attSrc=S.attSrc||{})[d]='Gateware 자동 ('+v.at+' 기준, 이름 일부 가림)'; n++; } if(n){ save(); renderAll(); } }catch(e){} }
+async function loadAttJson(){ try{ const j=await fetchData('att.json'); if(!j) return; let n=0; for(const [d,v] of Object.entries(j.days||{})){ if((S.attSrc||{})[d] && !/자동/.test(S.attSrc[d]) && !/Gateware 일일 출역 \(11\/5/.test(S.attSrc[d])) continue; S.att[d]=v.rows; (S.attSrc=S.attSrc||{})[d]='Gateware 자동 ('+v.at+' 기준, 이름 일부 가림)'; n++; } if(n){ save(); renderAll(); } }catch(e){} }
 $('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); loadMarks(); loadLocPos(); loadHR(); renderCctv();
 setInterval(loadHR, 10*60*1000);
 setInterval(loadMarks, 10*60*1000);
