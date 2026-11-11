@@ -39,6 +39,22 @@ header.top .wrap{display:flex;align-items:center;gap:14px;padding-top:14px;paddi
 .pin .b span{transform:rotate(45deg);color:#fff;font-weight:800;font-size:13px}
 .pin .w{position:absolute;top:-8px;right:-10px;background:#fff;border:1.5px solid var(--red);color:var(--red);border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:800}
 .pin.dim{opacity:.35}
+.pin.hrp .b{box-shadow:0 0 0 3px #fff,0 0 0 6px var(--red)}
+.pin.hrp::after{content:'';position:absolute;left:-9px;top:-9px;width:46px;height:46px;border-radius:50%;border:3px solid var(--red);animation:hrpulse 1.6s ease-out infinite;pointer-events:none}
+@keyframes hrpulse{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.5);opacity:0}}
+.hrcard{margin-bottom:14px}
+.hrbox{background:#fff;border:2px solid var(--red);border-radius:14px;padding:12px 14px;box-shadow:0 2px 10px rgba(224,53,58,.12)}
+.hrbox.none{border-color:#d8dde6;box-shadow:none}
+.hrbox h3{margin:0 0 8px;font-size:16px;color:var(--red);display:flex;align-items:center;gap:8px}
+.hrbox.none h3{color:#666}
+.hritem{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:10px;background:#fff4f4;margin-top:6px;cursor:pointer}
+.hritem.nw{background:#f3f4f6}
+.hritem .g{flex:none;min-width:30px;height:30px;border-radius:8px;background:var(--red);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+.hritem.nw .g{background:#9aa1ad}
+.hritem .t{font-weight:700;font-size:14px}
+.hritem .m{font-size:12px;color:#555;margin-top:2px;line-height:1.5}
+.hritem .st{flex:none;margin-left:auto;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--red);color:#fff;white-space:nowrap}
+.hritem.nw .st{background:#9aa1ad}
 .zb{position:absolute;transform:translate(-50%,-50%);z-index:2;cursor:pointer;color:#fff;font-weight:800;font-size:12px;padding:3px 8px;border-radius:8px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);white-space:nowrap;line-height:1.2}
 .zb.zsel{outline:3px solid #111;transform:translate(-50%,-50%) scale(1.15);z-index:4}
 .zb .n{background:#fff;color:#d00;border-radius:8px;padding:0 4px;margin-left:3px;font-size:11px}
@@ -161,6 +177,7 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
   <section class="view on" id="v-dash">
     <div class="dash">
       <div>
+        <div id="hrCard" class="hrcard"></div>
         <div class="sec-h"><h2>현장 배치 및 작업 위치</h2><span class="pill">핀을 눌러 상세 확인</span></div>
         <div class="card mapcard">
           <div class="mh"><b>현장 평면도 (26.10)</b><span><label class="note" style="margin-right:10px"><input type="checkbox" id="mkOn" checked onchange="renderDash()"> PDF 장비위치</label><label class="note" style="margin-right:10px"><input type="checkbox" id="mkLb" onchange="renderDash()"> 이름표</label><span id="mapCnt"></span></span></div>
@@ -453,6 +470,18 @@ function workers(d){
 function isfOf(d){ return (((S.weak||{})[d]||{}).list)||[]; }
 function isfFlag(q){ return [q==='고혈압'?'hbp':q==='고령자'?'old':q==='검진유소견자'?'chk':q==='외국인'?'for':'isf', q+' (i-safety)']; }
 function isfExtra(d,w){ const used=new Set(w.map(x=>x._isf).filter(Boolean)); return isfOf(d).filter(e=>!used.has(e)).map(e=>({c:e.c,n:e.n,t:'',j:'(Gateware 출역 명단에 없음)',in:e.in||'',out:'',age:e.age,b:'',nat:'',reg:'',staff:false,matched:false,isfOnly:true,f:e.kinds.map(isfFlag)})); }
+function renderHRCard(T){
+  const box=$('hrCard'); if(!box) return;
+  const L=(S.hirisk||{})[D];
+  if(!S.hirisk){ box.innerHTML=''; return; }
+  if(!L||!L.length){ box.innerHTML='<div class="hrbox none"><h3>🚨 오늘 고위험작업 <span class="note" style="font-weight:400">i-safety 일일고위험작업(당사) 기준</span></h3><div class="note">'+D+' 등록된 고위험작업이 없습니다.</div></div>'; return; }
+  const items=L.map(h=>{ const z=hrZones(h.loc); const nw=/작업\s*없|작업없음|우천/.test(h.content||''); const hit=T.filter(t=>norm(t.co)===norm(h.co) && (t.zones||[]).some(x=>z.includes(x)));
+    const who=[h.supervisor&&'관리감독자 '+h.supervisor, h.safety&&'안전관리자 '+h.safety, h.watcher&&h.watcher!=='없음'?'감시자 '+h.watcher:'', h.cctv&&'CCTV '+h.cctv].filter(Boolean).join(' · ');
+    const tasks=hit.map(t=>t.name+(t.eqTxt?' ('+t.eqTxt+')':'')).join(' / ');
+    return {h,nw,hit,html:'<div class="hritem'+(nw?' nw':'')+'" onclick="'+(hit[0]?"showTask('"+hit[0].id+"')":'')+'"><div class="g">'+esc(h.grade||'-')+'</div><div><div class="t">'+esc((h.co||'')+' · '+(h.loc||''))+'</div><div class="m">⚠ '+esc(h.type||h.work||'고위험작업')+(h.content&&h.content!==(h.type||h.work)?' · '+esc(h.content):'')+'</div>'+(tasks?'<div class="m">🔗 '+esc(tasks)+'</div>':'')+(who?'<div class="m">👷 '+esc(who)+'</div>':'')+(h.measures?'<div class="m">🛡 '+esc(h.measures)+'</div>':'')+'</div><div class="st">'+(nw?'작업없음':'작업중')+'</div></div>'}; });
+  const act=items.filter(x=>!x.nw).length;
+  box.innerHTML='<div class="hrbox'+(act?'':' none')+'"><h3>🚨 오늘 고위험작업 '+act+'건'+(items.length>act?' <span class="note" style="font-weight:400">(작업없음 '+(items.length-act)+'건)</span>':'')+' <span class="note" style="font-weight:400;margin-left:auto">i-safety 기준'+(S.hiriskAt?' · '+esc(S.hiriskAt):'')+'</span></h3>'+items.map(x=>x.html).join('')+'</div>';
+}
 function vulOf(d){ const w=workers(d); return (S.crit.ex? w.filter(x=>!x.staff):w).filter(x=>x.f.length).concat(isfExtra(d,w)); }
 
 /* ===================== DASHBOARD ===================== */
@@ -468,7 +497,7 @@ function renderDash(){
   const zp=S.zonePos||{}, usedZ={};
   const pinsOf=t=> (t.pins&&t.pins.length)? t.pins.map(p=>({...p})) : locPins(t).concat((t.zones||[]).filter(z=>zp[z]).map(z=>{ const k=(usedZ[z]=(usedZ[z]||0)+1)-1; return {x:zp[z].x+(k%3)*1.6, y:zp[z].y+Math.floor(k/3)*2.2, auto:true}; }));
   const lbUsed=[]; T.forEach(t=>pinsOf(t).forEach((p,pi)=>{
-    const el=document.createElement('div'); el.className='pin'+((F&&t.co!==F)||t.status==='작업취소'?' dim':'');
+    const el=document.createElement('div'); el.className='pin'+((F&&t.co!==F)||t.status==='작업취소'?' dim':'')+(isHR(t)&&t.status!=='작업취소'?' hrp':'');
     el.style.left=p.x+'%'; el.style.top=p.y+'%';
     const eqN=eqSum(t), eqL=t.eqTxt?eqShort(t):'', shared=/공용/.test(t.eqTxt||''); let lbOff=0; if(pi===0&&t.eqTxt){ lbOff=lbUsed.filter(q=>Math.abs(q.x-p.x)<12&&Math.abs(q.y-p.y)<4).length; lbUsed.push({x:p.x,y:p.y}); }
     el.innerHTML=`<div class="b" style="background:${coColor(t.co)}"><span>${pi===0&&t.eqTxt?(shared?'↔':eqN):(pi===0?t.workers||0:'·')}</span></div>${isHR(t)?'<div class="w">!</div>':''}${pi===0&&t.eqTxt?'<div class="eqlb" style="top:'+(-2+lbOff*22)+'px">'+esc(t.name)+' · '+esc(shared?t.eqTxt:eqL)+'</div>':''}`;
@@ -486,7 +515,8 @@ function renderDash(){
   const tcs=(S.topchk||{})[D]; const top= tcs&&tcs.sum ? (tcs.sum.total - tcs.sum.nowork) : act.filter(t=>t.top==='O').length;
   const att=attOf(D).length;
   const k=(v,l,cls,go)=>`<div class="kpi ${cls||''}" onclick="${go||''}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
-  $('kpis').innerHTML = k(att||'-','총 출역인원','',"go('wk')")+k(vul.length,'취약근로자','pur',"go('wk')")+k(hrW,'고위험<br>작업인원')+k(act.length,'작업건수','',"go('status')")+k(hrT.length,'고위험','red')+k(top,'상등급','org',"showTop()");
+  $('kpis').innerHTML = k(att||'-','총 출역인원','',"go('wk')")+k(vul.length,'취약근로자','pur',"go('wk')")+k(hrW,'고위험<br>작업인원')+k(act.length,'작업건수','',"go('status')")+k(hrT.length,'고위험','red',"document.getElementById('hrCard').scrollIntoView({behavior:'smooth',block:'center'})")+k(top,'상등급','org',"showTop()");
+  renderHRCard(T);
   // checks
   const ck=[];
   const noWatch=hrT.filter(t=>t.watch!=='O'); if(noWatch.length) ck.push(['r',`🚨 고위험 작업 전담자 미배치 ${noWatch.length}건`, noWatch]);
