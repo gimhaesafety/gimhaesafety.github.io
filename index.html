@@ -43,6 +43,8 @@ header.top .wrap{display:flex;align-items:center;gap:14px;padding-top:14px;paddi
 .pin.hrp::after{content:'';position:absolute;left:-9px;top:-9px;width:46px;height:46px;border-radius:50%;border:3px solid var(--red);animation:hrpulse 1.6s ease-out infinite;pointer-events:none}
 @keyframes hrpulse{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.5);opacity:0}}
 .hrcard{margin-bottom:14px}
+tr.hrrow td{background:#fff4f4}
+tr.hrrow td:first-child{box-shadow:inset 4px 0 0 var(--red)}
 .hrbox{background:#fff;border:2px solid var(--red);border-radius:14px;padding:12px 14px;box-shadow:0 2px 10px rgba(224,53,58,.12)}
 .hrbox.none{border-color:#d8dde6;box-shadow:none}
 .hrbox h3{margin:0 0 8px;font-size:16px;color:var(--red);display:flex;align-items:center;gap:8px}
@@ -291,6 +293,7 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
   <!-- ============ STATUS ============ -->
   <section class="view" id="v-status">
     <div class="sec-h"><h2>작업현황</h2><span class="pill" id="stCnt"></span></div>
+    <div id="hrCard2" class="hrcard"></div>
     <div class="card scroll" style="padding:0"><table class="t" id="stTbl"></table></div>
   </section>
 
@@ -470,8 +473,8 @@ function workers(d){
 function isfOf(d){ return (((S.weak||{})[d]||{}).list)||[]; }
 function isfFlag(q){ return [q==='고혈압'?'hbp':q==='고령자'?'old':q==='검진유소견자'?'chk':q==='외국인'?'for':'isf', q+' (i-safety)']; }
 function isfExtra(d,w){ const used=new Set(w.map(x=>x._isf).filter(Boolean)); return isfOf(d).filter(e=>!used.has(e)).map(e=>({c:e.c,n:e.n,t:'',j:'(Gateware 출역 명단에 없음)',in:e.in||'',out:'',age:e.age,b:'',nat:'',reg:'',staff:false,matched:false,isfOnly:true,f:e.kinds.map(isfFlag)})); }
-function renderHRCard(T){
-  const box=$('hrCard'); if(!box) return;
+function renderHRCard(T,id){
+  const box=$(id||'hrCard'); if(!box) return;
   const L=(S.hirisk||{})[D];
   if(!S.hirisk){ box.innerHTML=''; return; }
   if(!L||!L.length){ box.innerHTML='<div class="hrbox none"><h3>🚨 오늘 고위험작업 <span class="note" style="font-weight:400">i-safety 일일고위험작업(당사) 기준</span></h3><div class="note">'+D+' 등록된 고위험작업이 없습니다.</div></div>'; return; }
@@ -701,9 +704,10 @@ function loadRecent(){
 
 /* ===================== STATUS / ZONE ===================== */
 function renderStatus(){
-  const T=tasksOf(D); $('stCnt').textContent=T.length+'건';
+  const T=tasksOf(D).slice().sort((a,b)=>(isHR(b)&&b.status!=='작업취소')-(isHR(a)&&a.status!=='작업취소')); const nHR=T.filter(t=>isHR(t)&&t.status!=='작업취소').length; $('stCnt').textContent=T.length+'건'+(nHR?' · 고위험 '+nHR+'건':''); renderHRCard(T,'hrCard2');
+  const hrG=t=>{ const h=((S.hirisk||{})[D]||[]).find(h=>norm(h.co)===norm(t.co)&&(t.zones||[]).some(z=>hrZones(h.loc).includes(z))); return h&&h.grade?h.grade:''; };
   $('stTbl').innerHTML='<tr><th>상태</th><th>업체</th><th>작업명</th><th>구역</th><th>인원</th><th>시간</th><th>장비</th><th>고위험</th><th>PTW</th><th>상등급</th><th>전담자</th><th></th></tr>'+
-   T.map(t=>`<tr><td><select onchange="setStatusQ('${t.id}',this.value)">${['예정','진행중','완료','작업취소'].map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></td><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${coColor(t.co)}"></i> ${esc(t.co)}</td><td><a href="#" onclick="showTask('${t.id}');return false"><b>${esc(t.name)}</b></a></td><td>${esc((t.zones||[]).join(', '))}</td><td>${t.workers}</td><td>${t.start}~${t.end}</td><td>${(t.eq||[]).map(e=>e.t+' '+e.n).join(', ')}</td><td>${isHR(t)?'<span class="tag hr">'+esc(t.hr.filter(h=>h!=='해당 없음').join(', '))+'</span>':'-'}</td><td>${t.ptw||'-'}</td><td>${t.top||'-'}</td><td style="color:${t.watch==='O'?'var(--green)':'var(--red)'}">${t.watch==='O'?esc(t.watcher||'배치'):'미배치'}</td><td><button class="btn" onclick="editTask('${t.id}')">수정</button></td></tr>`).join('') + (T.length?'':'<tr><td colspan="13" style="text-align:center;color:#888;padding:30px">등록된 작업이 없습니다</td></tr>');
+   T.map(t=>`<tr class="${isHR(t)&&t.status!=='작업취소'?'hrrow':''}"><td><select onchange="setStatusQ('${t.id}',this.value)">${['예정','진행중','완료','작업취소'].map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></td><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${coColor(t.co)}"></i> ${esc(t.co)}</td><td><a href="#" onclick="showTask('${t.id}');return false"><b>${esc(t.name)}</b></a></td><td>${esc((t.zones||[]).join(', '))}</td><td>${t.workers}</td><td>${t.start}~${t.end}</td><td>${(t.eq||[]).map(e=>e.t+' '+e.n).join(', ')}</td><td>${isHR(t)?'<span class="tag hr">⚠ '+esc(t.hr.filter(h=>h!=='해당 없음').join(', '))+(hrG(t)?' · '+esc(hrG(t)):'')+(t.hrSrc?' · i-safety':'')+'</span>':'-'}</td><td>${t.ptw||'-'}</td><td>${t.top||'-'}</td><td style="color:${t.watch==='O'?'var(--green)':'var(--red)'}">${t.watch==='O'?esc(t.watcher||'배치'):'미배치'}</td><td><button class="btn" onclick="editTask('${t.id}')">수정</button></td></tr>`).join('') + (T.length?'':'<tr><td colspan="13" style="text-align:center;color:#888;padding:30px">등록된 작업이 없습니다</td></tr>');
 }
 function setStatusQ(id,s){ S.tasks.find(x=>x.id===id).status=s; save(); renderDash(); }
 const DEF_GROUPS=[
