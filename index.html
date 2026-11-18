@@ -43,6 +43,14 @@ header.top .wrap{display:flex;align-items:center;gap:14px;padding-top:14px;paddi
 .pin.hrp::after{content:'';position:absolute;left:-9px;top:-9px;width:46px;height:46px;border-radius:50%;border:3px solid var(--red);animation:hrpulse 1.6s ease-out infinite;pointer-events:none}
 @keyframes hrpulse{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.5);opacity:0}}
 .hrcard{margin-bottom:14px}
+.blast{position:absolute;transform:translate(-50%,-50%);z-index:7;cursor:pointer}
+.blast .s{font-size:28px;line-height:1;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 2px #fff);animation:blpulse 1.2s ease-in-out infinite;display:inline-block}
+@keyframes blpulse{50%{transform:scale(1.25)}}
+.blast .bl{position:absolute;left:26px;top:2px;background:#e0353a;color:#fff;font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.blastbox{background:#fff;border:2px solid #f08c00;border-radius:14px;padding:12px 14px;margin-bottom:14px;cursor:pointer}
+.blastbox h3{margin:0 0 6px;font-size:16px;color:#c25e00;display:flex;gap:8px;align-items:center}
+.blastbox .r{font-size:13px;color:#333;line-height:1.7}
+.bt{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.bt td{border:1px solid #e3e6ec;padding:5px 8px}.bt td:first-child{background:#f6f7f9;font-weight:700;width:34%}
 tr.hrrow td{background:#fff4f4}
 tr.hrrow td:first-child{box-shadow:inset 4px 0 0 var(--red)}
 .hrbox{background:#fff;border:2px solid var(--red);border-radius:14px;padding:12px 14px;box-shadow:0 2px 10px rgba(224,53,58,.12)}
@@ -200,6 +208,7 @@ table.t th{background:var(--soft);color:#555;position:sticky;top:0}
       </div>
       <div>
         <div id="hrCard" class="hrcard"></div>
+        <div id="blastCard"></div>
         <div class="sec-h"><h2>주요 작업 목록</h2><span><span class="pill" id="syncInfo" style="margin-right:6px">구글시트 확인 중…</span><button class="btn" onclick="_autoDone[D]=0;S.sheetSig&&delete S.sheetSig[D];syncSheet(null,true).then(r=>{ $('syncInfo').textContent= r==='notab'?'구글시트에 이 날짜 탭이 없습니다':'구글시트 연동됨'; })">↻ 시트 새로고침</button> <span class="pill" id="taskCnt"></span></span></div>
         <select class="sel" id="coFilter" onchange="renderDash()"></select>
         <div id="taskList"></div>
@@ -436,6 +445,20 @@ const eqShort = t => (t.eq||[]).filter(e=>+e.n).map(e=>e.t.replace('덤프트럭
 let LOC_POS = {"강체식 3호 옹벽":{"x":46.54,"y":17.07}};
 const nz = s => String(s||'').replace(/\s/g,'');
 function locPins(t){ const L=nz((t.loc||'')+' '+(t.name||'')); return Object.entries(LOC_POS).filter(([k])=>L.includes(nz(k))).map(([k,v])=>({x:v.x,y:v.y,auto:true})); }
+// 발파계획서 (사용자가 매일 보내는 발파계획서를 blast.json에 기록)
+async function loadBlast(){ try{ const j=await fetchData('blast.json'); if(j&&j.days){ S.blast=j.days; renderAll(); } }catch(e){} }
+function blastOf(d){ return ((S.blast||{})[d])||[]; }
+function blastPos(b){ if(b.x!=null) return {x:b.x,y:b.y}; const p=(S.zonePos||{})[b.zone]; return p?{x:p.x+(b.dx||0),y:p.y+(b.dy||0)}:null; }
+function renderBlastCard(){ const box=$('blastCard'); if(!box) return; const L=blastOf(D); if(!L.length){ box.innerHTML=''; return; }
+  box.innerHTML=L.map((b,i)=>'<div class="blastbox" onclick="showBlast('+i+')"><h3>💥 오늘 발파계획 <span class="note" style="font-weight:400;margin-left:auto">'+esc(b.co||'')+' · 작성 '+esc(b.writer||'')+'</span></h3><div class="r"><b>'+esc(b.time||'')+'</b> · '+esc(b.place||'')+' · '+esc(b.method||'')+'<br>천공 '+esc(b.holes||'')+'공 · 발파 '+esc(b.rounds||'')+'회 · 총 장약량 '+esc(b.charge||'')+'kg · 지발당 '+esc(b.perDelay||'')+'kg<br>최단거리 '+(b.nearest||[]).map(n=>esc(n.n)+' '+esc(n.d)+'m').join(' · ')+'</div></div>').join(''); }
+function showBlast(i){ const b=blastOf(D)[i]; if(!b) return; const row=(k,v)=>v?'<tr><td>'+k+'</td><td>'+v+'</td></tr>':'';
+  openModal('<div style="display:flex;align-items:flex-start;gap:8px"><h3 style="margin:2px 0 6px;flex:1">💥 발파계획 · '+esc(b.date||D)+'</h3><button class="btn" onclick="closeModal()">✕</button></div><table class="bt">'+
+   row('발파일시',esc(b.time))+row('발파장소',esc(b.place))+row('협력사 / 작성자',esc((b.co||'')+' / '+(b.writer||'')))+row('감리사',esc(b.super))+row('적용공법',esc(b.method))+
+   row('계측위치 · 최단거리',(b.nearest||[]).map(n=>esc(n.n)+' '+esc(n.d)+'m').join(', '))+row('주변 이격거리',(b.around||[]).map(n=>esc(n.n)+' '+esc(n.d)+'m').join(', '))+
+   row('천공',esc('Φ'+(b.dia||'')+'mm · 천공장 '+(b.len||'')+'m · 저항선 '+(b.burden||'')+'m · 공간격 '+(b.spacing||'')+'m · '+(b.holes||'')+'공'))+
+   row('장약',esc('공당 '+(b.perHole||'')+'kg · 지발당 '+(b.perDelay||'')+'kg · 발파당 최대 '+(b.perRound||'')+'kg · 총 '+(b.charge||'')+'kg'))+
+   row('발파횟수 / 발파량',esc((b.rounds||'')+'회 / '+(b.volume||'')+'㎥'))+row('사용화약류',esc(b.explosives))+row('뇌관',esc(b.detonators))+
+   '</table><div class="note" style="margin-top:8px">출처: 삼호개발 발파계획서 (사용자 제공)</div>'); }
 async function loadLocPos(){ try{ const j=await fetchData('locpos.json'); if(j&&j.pos){ LOC_POS=j.pos; renderAll(); } }catch(e){} }
 const eqTable = d => ((S.equip||{})[d]||[]);
 const eqTotal = d => { const L=eqTable(d); return L.length? L.reduce((a,e)=>a+(+e.n||0),0) : tasksOf(d).filter(t=>t.status!=='작업취소').reduce((a,t)=>a+eqSum(t),0); };
@@ -508,6 +531,7 @@ function renderDash(){
   }));
   const MKC={발파:['#e0353a','발'],천공:['#e9891a','천'],정리:['#7a4ed6','정'],터파기:['#7a4ed6','터'],상차:['#2c5be0','상'],소할:['#0aa5b8','소']};
   mb.querySelectorAll('.mark').forEach(p=>p.remove()); mb.classList.toggle('showlb', !!($('mkLb')&&$('mkLb').checked));
+  blastOf(D).forEach((b,i)=>{ const p=blastPos(b); if(!p) return; const el=document.createElement('div'); el.className='blast'; el.style.left=p.x+'%'; el.style.top=p.y+'%'; el.title='발파 '+(b.time||''); el.innerHTML='<span class="s">💥</span><div class="bl">발파 '+esc(b.time||'')+' · '+esc((b.holes||'')+'공 '+(b.rounds||'')+'회')+'</div>'; el.onclick=e=>{e.stopPropagation(); showBlast(i);}; mb.appendChild(el); });
   const md=(S.marks||{})[D];
   if(md && (!$('mkOn')||$('mkOn').checked)) md.marks.forEach(m=>{ const c=MKC[m.k]||['#555','●']; const el=document.createElement('div'); el.className='mark'; el.style.left=m.x+'%'; el.style.top=m.y+'%'; el.title=m.t; el.innerHTML=`<div class="d" style="background:${c[0]}">${c[1]}</div>${m.dup?'':'<div class="lb">'+esc(m.t)+'</div>'}`; el.onclick=e=>{e.stopPropagation(); toast(m.t+' (평면도 PDF '+md.src+')');}; mb.appendChild(el); });
   $('mapCnt').textContent=`작업 ${T.length} · 장비 ${eqTotal(D)}대${md?' · PDF 표시 '+md.marks.filter(m=>!m.dup).length:''}`;
@@ -519,7 +543,7 @@ function renderDash(){
   const att=attOf(D).length;
   const k=(v,l,cls,go)=>`<div class="kpi ${cls||''}" onclick="${go||''}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
   $('kpis').innerHTML = k(att||'-','총 출역인원','',"go('wk')")+k(vul.length,'취약근로자','pur',"go('wk')")+k(hrW,'고위험<br>작업인원')+k(act.length,'작업건수','',"go('status')")+k(hrT.length,'고위험','red',"document.getElementById('hrCard').scrollIntoView({behavior:'smooth',block:'center'})")+k(top,'상등급','org',"showTop()");
-  renderHRCard(T);
+  renderHRCard(T); renderBlastCard();
   // checks
   const ck=[];
   const noWatch=hrT.filter(t=>t.watch!=='O'); if(noWatch.length) ck.push(['r',`🚨 고위험 작업 전담자 미배치 ${noWatch.length}건`, noWatch]);
@@ -956,8 +980,9 @@ function applyHighRisk(d){
 }
 async function loadMarks(){ try{ const r=await fetch('planmarks.json?t='+Date.now()); if(!r.ok) return; const j=await r.json(); S.marks=j.days||{}; renderDash(); }catch(e){} }
 async function loadAttJson(){ try{ const j=await fetchData('att.json'); if(!j) return; let n=0; for(const [d,v] of Object.entries(j.days||{})){ if((S.attSrc||{})[d] && !/자동/.test(S.attSrc[d]) && !/Gateware 일일 출역 \(11\/5/.test(S.attSrc[d])) continue; S.att[d]=v.rows; (S.attSrc=S.attSrc||{})[d]='Gateware 자동 ('+v.at+' 기준, 이름 일부 가림)'; n++; } if(n){ save(); renderAll(); } }catch(e){} }
-$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); loadMarks(); loadLocPos(); loadHR(); renderCctv();
+$('date').value=D; renderAll(); loadWeather(); autoSync(); loadAttJson(); loadMarks(); loadLocPos(); loadBlast(); loadHR(); renderCctv();
 setInterval(loadHR, 10*60*1000);
+setInterval(loadBlast, 10*60*1000);
 setInterval(loadMarks, 10*60*1000);
 setInterval(loadAttJson, 10*60*1000);
 setInterval(()=>{ _autoDone[D]=0; autoSync(); }, 5*60*1000);
