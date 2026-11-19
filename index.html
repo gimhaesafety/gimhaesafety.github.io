@@ -519,7 +519,7 @@ function renderDash(){
   fsel.innerHTML='<option value="">전체 협력업체</option>'+cos.map(c=>`<option ${c===cur?'selected':''}>${esc(c)}</option>`).join('');
   const F = fsel.value;
   // map pins
-  const mb=$('mapbox'); mb.querySelectorAll('.pin').forEach(p=>p.remove());
+  const mb=$('mapbox'); mb.querySelectorAll('.pin,.blast').forEach(p=>p.remove());
   const zp=S.zonePos||{}, usedZ={};
   const pinsOf=t=> (t.pins&&t.pins.length)? t.pins.map(p=>({...p})) : locPins(t).concat((t.zones||[]).filter(z=>zp[z]).map(z=>{ const k=(usedZ[z]=(usedZ[z]||0)+1)-1; return {x:zp[z].x+(k%3)*1.6, y:zp[z].y+Math.floor(k/3)*2.2, auto:true}; }));
   const lbUsed=[]; T.forEach(t=>pinsOf(t).forEach((p,pi)=>{
