@@ -46,7 +46,7 @@ header.top .wrap{display:flex;align-items:center;gap:14px;padding-top:14px;paddi
 .blast{position:absolute;transform:translate(-50%,-50%);z-index:7;cursor:pointer}
 .blast .s{font-size:28px;line-height:1;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 2px #fff);animation:blpulse 1.2s ease-in-out infinite;display:inline-block}
 @keyframes blpulse{50%{transform:scale(1.25)}}
-.blast .bl{position:absolute;right:28px;top:4px;background:#e0353a;color:#fff;font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.blast .bl{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);background:#e0353a;color:#fff;font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .blastbox{background:#fff;border:2px solid #f08c00;border-radius:14px;padding:12px 14px;margin-bottom:14px;cursor:pointer}
 .blastbox h3{margin:0 0 6px;font-size:16px;color:#c25e00;display:flex;gap:8px;align-items:center}
 .blastbox .r{font-size:13px;color:#333;line-height:1.7}
@@ -531,7 +531,7 @@ function renderDash(){
   }));
   const MKC={발파:['#e0353a','발'],천공:['#e9891a','천'],정리:['#7a4ed6','정'],터파기:['#7a4ed6','터'],상차:['#2c5be0','상'],소할:['#0aa5b8','소']};
   mb.querySelectorAll('.mark').forEach(p=>p.remove()); mb.classList.toggle('showlb', !!($('mkLb')&&$('mkLb').checked));
-  blastOf(D).forEach((b,i)=>{ const p=blastPos(b); if(!p) return; const el=document.createElement('div'); el.className='blast'; el.style.left=p.x+'%'; el.style.top=p.y+'%'; el.title='발파 '+(b.time||''); el.innerHTML='<span class="s">💥</span><div class="bl">발파 '+esc(b.time||'')+' · '+esc((b.holes||'')+'공 '+(b.rounds||'')+'회')+'</div>'; el.onclick=e=>{e.stopPropagation(); showBlast(i);}; mb.appendChild(el); });
+  blastOf(D).forEach((b,i)=>{ const p=blastPos(b); if(!p) return; const el=document.createElement('div'); el.className='blast'; el.style.left=p.x+'%'; el.style.top=p.y+'%'; el.title='발파 '+(b.time||''); el.innerHTML='<span class="s">💥</span><div class="bl">발파 '+esc(b.time||'')+'</div>'; el.onclick=e=>{e.stopPropagation(); showBlast(i);}; mb.appendChild(el); });
   const md=(S.marks||{})[D];
   if(md && (!$('mkOn')||$('mkOn').checked)) md.marks.forEach(m=>{ const c=MKC[m.k]||['#555','●']; const el=document.createElement('div'); el.className='mark'; el.style.left=m.x+'%'; el.style.top=m.y+'%'; el.title=m.t; el.innerHTML=`<div class="d" style="background:${c[0]}">${c[1]}</div>${m.dup?'':'<div class="lb">'+esc(m.t)+'</div>'}`; el.onclick=e=>{e.stopPropagation(); toast(m.t+' (평면도 PDF '+md.src+')');}; mb.appendChild(el); });
   $('mapCnt').textContent=`작업 ${T.length} · 장비 ${eqTotal(D)}대${md?' · PDF 표시 '+md.marks.filter(m=>!m.dup).length:''}`;
