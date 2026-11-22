@@ -450,14 +450,14 @@ function blastOf(d){ return ((S.blast||{})[d])||[]; }
 function blastPos(b){ if(b.x!=null) return {x:b.x,y:b.y}; const p=(S.zonePos||{})[b.zone]; return p?{x:p.x+(b.dx||0),y:p.y+(b.dy||0)}:null; }
 function renderBlastCard(){ const box=$('blastCard'); if(!box) return; const L=blastOf(D); if(!L.length){ box.innerHTML=''; return; }
   box.innerHTML=L.map((b,i)=>'<div class="blastbox" onclick="showBlast('+i+')"><h3>💥 오늘 발파계획 <span class="note" style="font-weight:400;margin-left:auto">'+esc(b.co||'')+' · 작성 '+esc(b.writer||'')+'</span></h3><div class="r"><b>'+esc(b.time||'')+'</b> · '+esc(b.place||'')+' · '+esc(b.method||'')+'<br>천공 '+esc(b.holes||'')+'공 · 발파 '+esc(b.rounds||'')+'회 · 총 장약량 '+esc(b.charge||'')+'kg · 지발당 '+esc(b.perDelay||'')+'kg<br>최단거리 '+(b.nearest||[]).map(n=>esc(n.n)+' '+esc(n.d)+'m').join(' · ')+'</div></div>').join(''); }
-function showBlast(i){ const b=blastOf(D)[i]; if(!b) return; const row=(k,v)=>v?'<tr><td>'+k+'</td><td>'+v+'</td></tr>':'';
-  openModal('<div style="display:flex;align-items:flex-start;gap:8px"><h3 style="margin:2px 0 6px;flex:1">💥 발파계획 · '+esc(b.date||D)+'</h3><button class="btn" onclick="closeModal()">✕</button></div><table class="bt">'+
+function showBlast(ix){ const L=blastOf(D); const arr=(Array.isArray(ix)?ix:[ix]).map(i=>L[i]).filter(Boolean); if(!arr.length) return; const row=(k,v)=>v?'<tr><td>'+k+'</td><td>'+v+'</td></tr>':'';
+  openModal('<div style="display:flex;align-items:flex-start;gap:8px"><h3 style="margin:2px 0 6px;flex:1">💥 발파계획 · '+esc(arr[0].date||D)+(arr.length>1?' ('+arr.length+'건, 같은 위치)':'')+'</h3><button class="btn" onclick="closeModal()">✕</button></div>'+arr.map((b,n)=>(arr.length>1?'<div style="font-weight:700;margin:10px 0 2px">'+(n+1)+'. '+esc(b.method||'')+'</div>':'')+'<table class="bt">'+
    row('발파일시',esc(b.time))+row('발파장소',esc(b.place))+row('협력사 / 작성자',esc((b.co||'')+' / '+(b.writer||'')))+row('감리사',esc(b.super))+row('적용공법',esc(b.method))+
    row('계측위치 · 최단거리',(b.nearest||[]).map(n=>esc(n.n)+' '+esc(n.d)+'m').join(', '))+row('주변 이격거리',(b.around||[]).map(n=>esc(n.n)+' '+esc(n.d)+'m').join(', '))+
    row('천공',esc('Φ'+(b.dia||'')+'mm · 천공장 '+(b.len||'')+'m · 저항선 '+(b.burden||'')+'m · 공간격 '+(b.spacing||'')+'m · '+(b.holes||'')+'공'))+
    row('장약',esc('공당 '+(b.perHole||'')+'kg · 지발당 '+(b.perDelay||'')+'kg · 발파당 최대 '+(b.perRound||'')+'kg · 총 '+(b.charge||'')+'kg'))+
    row('발파횟수 / 발파량',esc((b.rounds||'')+'회 / '+(b.volume||'')+'㎥'))+row('사용화약류',esc(b.explosives))+row('뇌관',esc(b.detonators))+
-   '</table><div class="note" style="margin-top:8px">출처: 삼호개발 발파계획서 (사용자 제공)</div>'); }
+   '</table>').join('')+'<div class="note" style="margin-top:8px">출처: 삼호개발 발파계획서 (사용자 제공)</div>'); }
 async function loadLocPos(){ try{ const j=await fetchData('locpos.json'); if(j&&j.pos){ LOC_POS=j.pos; renderAll(); } }catch(e){} }
 const eqTable = d => ((S.equip||{})[d]||[]);
 const eqTotal = d => { const L=eqTable(d); return L.length? L.reduce((a,e)=>a+(+e.n||0),0) : tasksOf(d).filter(t=>t.status!=='작업취소').reduce((a,t)=>a+eqSum(t),0); };
@@ -530,7 +530,8 @@ function renderDash(){
   }));
   const MKC={발파:['#e0353a','발'],천공:['#e9891a','천'],정리:['#7a4ed6','정'],터파기:['#7a4ed6','터'],상차:['#2c5be0','상'],소할:['#0aa5b8','소']};
   mb.querySelectorAll('.mark').forEach(p=>p.remove()); mb.classList.toggle('showlb', !!($('mkLb')&&$('mkLb').checked));
-  blastOf(D).forEach((b,i)=>{ const p=blastPos(b); if(!p) return; const el=document.createElement('div'); el.className='blast'; el.style.left=p.x+'%'; el.style.top=p.y+'%'; el.title='발파 '+(b.time||''); el.innerHTML='<span class="s">💥</span><div class="bl">발파 '+esc(b.time||'')+'</div>'; el.onclick=e=>{e.stopPropagation(); showBlast(i);}; mb.appendChild(el); });
+  { const G={}; blastOf(D).forEach((b,i)=>{ const p=blastPos(b); if(!p) return; const k=(b.zone||'')+'|'+(b.place||'')+'|'+(b.time||''); (G[k]=G[k]||{p,ix:[]}).ix.push(i); });
+    Object.values(G).forEach(g=>{ const L=blastOf(D); const hs=g.ix.reduce((a,i)=>a+(+L[i].holes||0),0), rs=g.ix.reduce((a,i)=>a+(+L[i].rounds||0),0); const el=document.createElement('div'); el.className='blast'; el.style.left=g.p.x+'%'; el.style.top=g.p.y+'%'; el.title='발파 '+(L[g.ix[0]].time||''); el.innerHTML='<span class="s">💥</span><div class="bl">발파 '+esc(L[g.ix[0]].time||'')+(g.ix.length>1?' · '+hs+'공 '+rs+'회':'')+'</div>'; el.onclick=e=>{e.stopPropagation(); showBlast(g.ix);}; mb.appendChild(el); }); }
   const md=(S.marks||{})[D];
   if(md && (!$('mkOn')||$('mkOn').checked)) md.marks.forEach(m=>{ const c=MKC[m.k]||['#555','●']; const el=document.createElement('div'); el.className='mark'; el.style.left=m.x+'%'; el.style.top=m.y+'%'; el.title=m.t; el.innerHTML=`<div class="d" style="background:${c[0]}">${c[1]}</div>${m.dup?'':'<div class="lb">'+esc(m.t)+'</div>'}`; el.onclick=e=>{e.stopPropagation(); toast(m.t+' (평면도 PDF '+md.src+')');}; mb.appendChild(el); });
   $('mapCnt').textContent=`작업 ${T.length} · 장비 ${eqTotal(D)}대${md?' · PDF 표시 '+md.marks.filter(m=>!m.dup).length:''}`;
